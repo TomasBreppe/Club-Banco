@@ -2,13 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { BaseResponse, DashboardSociosResponse } from '../models/dashboard.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class DashboardService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/admin/dashboard';
+  private apiUrl = `${environment.apiUrl}/api/admin/dashboard`;
 
   obtenerDashboardSocios(filtros?: {
     disciplinaId?: number | null;
