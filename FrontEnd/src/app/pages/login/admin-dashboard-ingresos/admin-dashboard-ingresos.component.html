@@ -1,0 +1,246 @@
+<div class="container py-4">
+  <div class="page-head mb-4">
+    <div>
+      <h2 class="mb-1">Dashboard de Ingresos</h2>
+      <p class="text-muted mb-0">
+        Seguimiento de ingresos del club, medios de pago y pagos registrados.
+      </p>
+    </div>
+
+    <div class="period-chip">
+      <i class="bi bi-calendar3 me-2"></i>
+      {{ mesActual }}
+    </div>
+  </div>
+
+  <div class="dashboard-nav mb-4">
+    <a routerLink="/admin/dashboard" class="nav-chip">General</a>
+    <a routerLink="/admin/dashboard/socios" class="nav-chip">Socios</a>
+    <a routerLink="/admin/dashboard/gastos" class="nav-chip">Gastos</a>
+    <a routerLink="/admin/dashboard/ingresos" class="nav-chip active">Ingresos</a>
+    <a routerLink="/admin/dashboard/balance" class="nav-chip">Balance</a>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <div *ngIf="ok" class="alert alert-success">
+    {{ ok }}
+  </div>
+
+  <div *ngIf="cargando" class="text-center my-4">
+    <div class="spinner-border" role="status"></div>
+    <div class="mt-2">Cargando ingresos...</div>
+  </div>
+
+  <ng-container *ngIf="!cargando && resumen">
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Total de ingresos del mes</h6>
+            <h2>{{ resumen.totalMes | currency:'ARS':'symbol':'1.2-2' }}</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Cantidad de pagos del mes</h6>
+            <h2>{{ resumen.cantidadPagosMes }}</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Medio más usado</h6>
+            <h2 class="fs-4">{{ formatMedio(resumen.medioMasUsado) }}</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Registrar ingreso manual</h5>
+
+        <div class="row g-3">
+          <div class="col-md-2">
+            <label class="form-label">Fecha</label>
+            <input
+              type="date"
+              class="form-control"
+              [(ngModel)]="formIngresoManual.fecha"
+              name="fechaIngresoManual"
+            />
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Categoría</label>
+            <select
+              class="form-select"
+              [(ngModel)]="formIngresoManual.categoria"
+              name="categoriaIngresoManual"
+            >
+              <option value="">Seleccionar...</option>
+              <option *ngFor="let c of categoriasIngresoManual" [value]="c">
+                {{ formatCategoria(c) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Monto</label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="formIngresoManual.monto"
+              name="montoIngresoManual"
+            />
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Medio</label>
+            <select
+              class="form-select"
+              [(ngModel)]="formIngresoManual.medioPago"
+              name="medioIngresoManual"
+            >
+              <option value="">Seleccionar...</option>
+              <option *ngFor="let m of mediosIngresoManual" [value]="m">
+                {{ formatMedio(m) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Descripción</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="formIngresoManual.descripcion"
+              name="descripcionIngresoManual"
+              placeholder="Opcional"
+            />
+          </div>
+
+          <div class="col-md-3">
+            <button
+              class="btn btn-success w-100"
+              [disabled]="guardandoManual"
+              (click)="guardarIngresoManual()"
+            >
+              {{ guardandoManual ? 'Guardando...' : 'Registrar ingreso manual' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Ingresos por medio de pago</h5>
+        <div class="chart-box">
+          <canvas #chartMedios></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Filtros</h5>
+
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Medio</label>
+            <select class="form-select" [(ngModel)]="filtros.medio">
+              <option value="">Todos</option>
+              <option *ngFor="let m of medios" [value]="m">
+                {{ formatMedio(m) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Desde</label>
+            <input type="date" class="form-control" [(ngModel)]="filtros.fechaDesde" />
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Hasta</label>
+            <input type="date" class="form-control" [(ngModel)]="filtros.fechaHasta" />
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Buscar</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="filtros.q"
+              placeholder="Concepto, período, socio, DNI o descripción"
+            />
+          </div>
+
+          <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-dark w-100" (click)="cargarDashboard()">Filtrar</button>
+          </div>
+
+          <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-outline-secondary w-100" (click)="limpiarFiltros()">
+              Limpiar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="mb-3">Listado de ingresos</h5>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Origen</th>
+                <th>Socio</th>
+                <th>Disciplina</th>
+                <th>Categoría</th>
+                <th>Concepto</th>
+                <th>Período</th>
+                <th>Medio</th>
+                <th>Monto</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let i of ingresos">
+                <td>{{ i.fecha | date:'yyyy-MM-dd HH:mm' }}</td>
+                <td>{{ formatOrigen(i.origen) }}</td>
+                <td>{{ i.socioNombreCompleto || '-' }}</td>
+                <td>{{ i.disciplinaNombre || '-' }}</td>
+                <td>{{ formatCategoria(i.categoria) }}</td>
+                <td>{{ i.concepto || '-' }}</td>
+                <td>{{ i.periodo || '-' }}</td>
+                <td>{{ formatMedio(i.medio) }}</td>
+                <td>{{ i.monto | currency:'ARS':'symbol':'1.2-2' }}</td>
+                <td>{{ i.descripcion || '-' }}</td>
+              </tr>
+
+              <tr *ngIf="ingresos.length === 0">
+                <td colspan="10" class="text-center text-muted py-4">
+                  No hay ingresos para mostrar.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

@@ -1,0 +1,285 @@
+<div class="admin-home container-fluid py-4">
+  <div class="home-shell">
+    <!-- HERO -->
+    <section class="hero-panel">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="hero-badge-dot"></span>
+          Panel administrativo
+        </div>
+
+        <h1 class="hero-title">Bienvenido a <span>Club Banco</span></h1>
+
+        <p class="hero-text">
+          Gestioná socios, disciplinas y pagos desde un único espacio. Accedé rápidamente a los
+          módulos principales del sistema y mantené el control operativo del club.
+        </p>
+
+        <div class="hero-actions">
+          <a routerLink="/admin/socios" class="btn btn-club-primary">
+            <i class="bi bi-people-fill me-2"></i>
+            Socios
+          </a>
+
+          <a routerLink="/admin/disciplinas" class="btn btn-club-secondary">
+            <i class="bi bi-journal-check me-2"></i>
+            Disciplinas
+          </a>
+
+          <!--  <a routerLink="/admin/pagos" class="btn btn-club-secondary">
+            <i class="bi bi-cash-coin me-2"></i>
+            Registrar pago
+          </a> -->
+        </div>
+      </div>
+
+      <div class="hero-side">
+        <div class="status-card">
+          <div class="status-card-header">
+            <div>
+              <div class="status-label">Estado general</div>
+              <div class="status-subtitle">Resumen administrativo</div>
+            </div>
+            <div class="status-shield">
+              <i class="bi bi-shield-check"></i>
+            </div>
+          </div>
+
+          <div class="status-list">
+            <div class="status-item">
+              <span>Socios registrados</span>
+              <strong>{{ stats.socios }}</strong>
+            </div>
+
+            <div class="status-item">
+              <span>Disciplinas activas</span>
+              <strong>{{ stats.disciplinasActivas }}</strong>
+            </div>
+
+            <div class="status-item danger" *ngIf="stats.deudores > 0">
+              <span>Socios con deuda</span>
+              <strong>{{ stats.deudores }}</strong>
+            </div>
+
+            <div class="status-item success" *ngIf="stats.deudores === 0">
+              <span>Estado de pagos</span>
+              <strong>Al día</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ERROR -->
+    <div class="row mb-4" *ngIf="statsError">
+      <div class="col-12">
+        <div class="alert alert-warning custom-alert mb-0">
+          {{ statsError }}
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE PRINCIPAL -->
+    <div class="content-grid">
+      <!-- IZQUIERDA -->
+      <div class="left-column">
+        <section class="panel-card">
+          <div class="section-header">
+            <div>
+              <h2>Resumen del club</h2>
+              <p>Indicadores principales del sistema.</p>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="metric-card">
+              <div class="metric-top">
+                <div class="metric-icon">
+                  <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="metric-tag">Socios</div>
+              </div>
+
+              <div class="metric-value">{{ stats.socios }}</div>
+              <div class="metric-text">Total de socios registrados.</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-top">
+                <div class="metric-icon">
+                  <i class="bi bi-journal-check"></i>
+                </div>
+                <div class="metric-tag">Disciplinas</div>
+              </div>
+
+              <div class="metric-value">{{ stats.disciplinasActivas }}</div>
+              <div class="metric-text">Disciplinas activas actualmente.</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-top">
+                <div class="metric-icon">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div class="metric-tag">Deudores</div>
+              </div>
+
+              <div class="metric-value">{{ stats.deudores }}</div>
+              <div class="metric-text">Socios con estado de pago pendiente.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-card">
+          <div class="section-header">
+            <div>
+              <h2>Módulos principales</h2>
+              <p>Accedé a las áreas de gestión del club.</p>
+            </div>
+          </div>
+
+          <div class="modules-grid">
+            <a routerLink="/admin/socios" class="module-card">
+              <div class="module-head">
+                <div class="module-icon">
+                  <i class="bi bi-people-fill"></i>
+                </div>
+                <span class="module-arrow"> Ir <i class="bi bi-arrow-right-short"></i> </span>
+              </div>
+
+              <h3>Socios</h3>
+              <p>Alta, consulta, edición y administración del padrón de socios.</p>
+            </a>
+
+            <a routerLink="/admin/disciplinas" class="module-card">
+              <div class="module-head">
+                <div class="module-icon">
+                  <i class="bi bi-journal-check"></i>
+                </div>
+                <span class="module-arrow"> Ir <i class="bi bi-arrow-right-short"></i> </span>
+              </div>
+
+              <h3>Disciplinas</h3>
+              <p>Gestión de disciplinas disponibles, estados y configuración.</p>
+            </a>
+
+            <!-- <a routerLink="/admin/pagos" class="module-card">
+              <div class="module-head">
+                <div class="module-icon">
+                  <i class="bi bi-cash-coin"></i>
+                </div>
+                <span class="module-arrow">
+                  Ir <i class="bi bi-arrow-right-short"></i>
+                </span>
+              </div>
+
+              <h3>Pagos</h3>
+              <p>Registro de pagos, seguimiento y control de cobranzas.</p>
+            </a> -->
+
+            <a routerLink="/admin/dashboard/socios" class="module-card">
+              <div class="module-head">
+                <div class="module-icon">
+                  <i class="bi bi-bar-chart-line"></i>
+                </div>
+                <span class="module-arrow"> Ir <i class="bi bi-arrow-right-short"></i> </span>
+              </div>
+
+              <h3>Reportes</h3>
+              <p>Acceso al dashboard con gráficos, métricas e indicadores.</p>
+            </a>
+          </div>
+        </section>
+      </div>
+
+      <!-- DERECHA -->
+      <div class="right-column">
+        <section class="panel-card side-panel">
+          <div class="section-header">
+            <div>
+              <h2>Acciones rápidas</h2>
+              <p>Tareas frecuentes del administrador.</p>
+            </div>
+          </div>
+
+          <div class="quick-list">
+            <a routerLink="/admin/socios" class="quick-item">
+              <div class="quick-icon">
+                <i class="bi bi-person-plus-fill"></i>
+              </div>
+              <div>
+                <div class="quick-title">Alta de socio</div>
+                <div class="quick-text">Registrar un nuevo socio.</div>
+              </div>
+            </a>
+
+            <a routerLink="/admin/socios" class="quick-item">
+              <div class="quick-icon">
+                <i class="bi bi-card-list"></i>
+              </div>
+              <div>
+                <div class="quick-title">Listado de socios</div>
+                <div class="quick-text">Consultar el padrón completo.</div>
+              </div>
+            </a>
+
+            <a routerLink="/admin/disciplinas" class="quick-item">
+              <div class="quick-icon">
+                <i class="bi bi-plus-circle"></i>
+              </div>
+              <div>
+                <div class="quick-title">Nueva disciplina</div>
+                <div class="quick-text">Crear o habilitar una disciplina.</div>
+              </div>
+            </a>
+
+            <!-- <a routerLink="/admin/pagos" class="quick-item">
+              <div class="quick-icon">
+                <i class="bi bi-cash-coin"></i>
+              </div>
+              <div>
+                <div class="quick-title">Registrar pago</div>
+                <div class="quick-text">Cargar un pago al sistema.</div>
+              </div> 
+            </a> -->
+          </div>
+        </section>
+
+        <section class="panel-card side-panel">
+          <div class="section-header">
+            <div>
+              <h2>Guía rápida</h2>
+              <p>Orden sugerido de trabajo.</p>
+            </div>
+          </div>
+
+          <div class="steps-list">
+            <div class="step-item">
+              <div class="step-number">1</div>
+              <div>
+                <div class="step-title">Cargar socio</div>
+                <div class="step-text">Ingresá sus datos y asignale una disciplina.</div>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-number">2</div>
+              <div>
+                <div class="step-title">Gestionar disciplina</div>
+                <div class="step-text">Activá o desactivá según la temporada.</div>
+              </div>
+            </div>
+
+            <div class="step-item">
+              <div class="step-number">3</div>
+              <div>
+                <div class="step-title">Registrar pago</div>
+                <div class="step-text">Actualizá el estado administrativo del socio.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>

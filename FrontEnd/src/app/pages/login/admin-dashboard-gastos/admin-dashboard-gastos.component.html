@@ -1,0 +1,234 @@
+<div class="container py-4">
+  <div class="page-head mb-4">
+    <div>
+      <h2 class="mb-1">Dashboard de Gastos</h2>
+      <p class="text-muted mb-0">
+        Control de egresos del club, carga de gastos y análisis por categoría.
+      </p>
+    </div>
+
+    <div class="period-chip">
+      <i class="bi bi-calendar3 me-2"></i>
+      {{ mesActual }}
+    </div>
+  </div>
+
+  <div class="dashboard-nav mb-4">
+    <a routerLink="/admin/dashboard" class="nav-chip">General</a>
+    <a routerLink="/admin/dashboard/socios" class="nav-chip">Socios</a>
+    <a routerLink="/admin/dashboard/gastos" class="nav-chip active">Gastos</a>
+    <a routerLink="/admin/dashboard/ingresos" class="nav-chip">Ingresos</a>
+    <a routerLink="/admin/dashboard/balance" class="nav-chip">Balance</a>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <div *ngIf="ok" class="alert alert-success">
+    {{ ok }}
+  </div>
+
+  <div *ngIf="cargando" class="text-center my-4">
+    <div class="spinner-border" role="status"></div>
+    <div class="mt-2">Cargando gastos...</div>
+  </div>
+
+  <ng-container *ngIf="!cargando && resumen">
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Total de gastos del mes</h6>
+            <h2>{{ resumen.totalMes | currency: 'ARS' : 'symbol' : '1.2-2' }}</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Cantidad de gastos del mes</h6>
+            <h2>{{ resumen.cantidadGastosMes }}</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Categoría con mayor gasto</h6>
+            <h2 class="fs-4">{{ formatCategoria(resumen.categoriaMayorGasto) }}</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Registrar gasto</h5>
+
+        <div class="row g-3">
+          <div class="col-md-2">
+            <label class="form-label">Fecha</label>
+            <input type="date" class="form-control" [(ngModel)]="form.fecha" name="fecha" />
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Categoría</label>
+            <select class="form-select" [(ngModel)]="form.categoria" name="categoria">
+              <option value="">Seleccionar...</option>
+              <option value="IMPUESTOS">Impuestos</option>
+              <option value="DISCIPLINAS">Disciplinas</option>
+              <option value="MANTENIMIENTO">Mantenimiento</option>
+              <option value="LIMPIEZA">Limpieza</option>
+              <option value="EVENTOS">Eventos</option>
+              <option value="HONORARIOS">Honorarios</option>
+              <option value="OTROS">Otros</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Concepto</label>
+            <select class="form-select" [(ngModel)]="form.concepto" name="concepto">
+              <option value="">Seleccionar...</option>
+              <option value="Epec">Epec</option>
+              <option value="Ecogas">Ecogas</option>
+              <option value="Telecom">Telecom</option>
+              <option value="Internet">Internet</option>
+              <option value="Seguros">Seguros</option>
+              <option value="Aguas cordobesas">Aguas cordobesas</option>
+              <option value="ADT">ADT</option>
+              <option value="Arca">Arca</option>
+              <option value="Otros">Otros</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Monto</label>
+            <input type="number" class="form-control" [(ngModel)]="form.monto" name="monto" />
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Medio de pago</label>
+            <select class="form-select" [(ngModel)]="form.medioPago" name="medioPago">
+              <option value="">Seleccionar...</option>
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="BANCO">Banco</option>
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Descripción</label>
+            <textarea
+              class="form-control"
+              rows="2"
+              [(ngModel)]="form.descripcion"
+              name="descripcion"
+            ></textarea>
+          </div>
+
+          <div class="col-md-3">
+            <button class="btn btn-danger w-100" [disabled]="guardando" (click)="guardarGasto()">
+              {{ guardando ? 'Guardando...' : 'Registrar gasto' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Gastos por categoría</h5>
+        <div class="chart-box">
+          <canvas #chartCategorias></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Filtros</h5>
+
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Categoría</label>
+            <select class="form-select" [(ngModel)]="filtros.categoria">
+              <option value="">Todas</option>
+              <option *ngFor="let c of categorias" [value]="c">
+                {{ formatCategoria(c) }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Desde</label>
+            <input type="date" class="form-control" [(ngModel)]="filtros.fechaDesde" />
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Hasta</label>
+            <input type="date" class="form-control" [(ngModel)]="filtros.fechaHasta" />
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Buscar</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="filtros.q"
+              placeholder="Concepto o descripción"
+            />
+          </div>
+
+          <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-dark w-100" (click)="cargarDashboard()">Filtrar</button>
+          </div>
+
+          <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-outline-secondary w-100" (click)="limpiarFiltros()">
+              Limpiar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="mb-3">Listado de gastos</h5>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Categoría</th>
+                <th>Concepto</th>
+                <th>Descripción</th>
+                <th>Medio de pago</th>
+                <th>Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let g of gastos">
+                <td>{{ g.fecha }}</td>
+                <td>{{ formatCategoria(g.categoria) }}</td>
+                <td>{{ g.concepto }}</td>
+                <td>{{ g.descripcion || '-' }}</td>
+                <td>{{ g.medioPago || '-' }}</td>
+                {{
+                  g.monto | currency: 'ARS' : 'symbol' : '1.2-2'
+                }}
+              </tr>
+
+              <tr *ngIf="gastos.length === 0">
+                <td colspan="6" class="text-center text-muted py-4">No hay gastos para mostrar.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

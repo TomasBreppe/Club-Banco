@@ -1,0 +1,217 @@
+<div class="container py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="m-0">Disciplinas</h4>
+
+    <button class="btn btn-outline-secondary" (click)="cargar()" [disabled]="loading">
+      <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+      Refrescar
+    </button>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+  <div *ngIf="errorArancel" class="alert alert-danger">{{ errorArancel }}</div>
+  <div *ngIf="okArancel" class="alert alert-success">{{ okArancel }}</div>
+
+  <div class="card mb-3">
+    <div class="card-body d-flex gap-2">
+      <input
+        class="form-control"
+        placeholder="Nueva disciplina"
+        [(ngModel)]="nombre"
+        [disabled]="loading"
+      />
+      <button class="btn btn-primary" (click)="crear()" [disabled]="loading">Crear</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Listado</div>
+
+    <div class="table-responsive position-relative" style="min-height: 140px">
+      <div
+        *ngIf="loading && items.length === 0"
+        class="position-absolute d-flex align-items-center justify-content-center"
+        style="inset: 0; background: rgba(255, 255, 255, 0.65); z-index: 10"
+      >
+        <div class="spinner-border" role="status" aria-label="Cargando"></div>
+      </div>
+
+      <table class="table table-striped mb-0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Activa</th>
+            <th>Categorías / Aranceles</th>
+            <th class="text-end"></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let d of items">
+            <td>{{ d.id }}</td>
+            <td>{{ d.nombre }}</td>
+
+            <td>
+              <span class="badge" [class.bg-success]="d.activa" [class.bg-secondary]="!d.activa">
+                {{ d.activa ? 'Sí' : 'No' }}
+              </span>
+            </td>
+
+            <td style="min-width: 620px">
+              <div *ngIf="arancelesPorDisciplina[d.id]?.length; else sinAranceles">
+                <div
+                  *ngFor="let a of arancelesPorDisciplina[d.id]"
+                  class="border rounded p-2 mb-2 bg-light"
+                >
+                  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ a.categoria }}</div>
+                      <div class="small text-muted d-flex flex-wrap gap-3 mt-1">
+                        <span><strong>Social:</strong> {{ formatMoneda(a.montoSocial) }}</span>
+                        <span
+                          ><strong>Deportivo:</strong> {{ formatMoneda(a.montoDeportivo) }}</span
+                        >
+                        <span
+                          ><strong>Prep. física:</strong>
+                          {{ formatMoneda(a.montoPreparacionFisica) }}</span
+                        >
+                        <span
+                          ><strong>Total:</strong>
+                          {{ formatMoneda(a.montoTotal || totalArancel(a)) }}</span
+                        >
+                      </div>
+                      <div class="small text-muted">Vigente desde: {{ a.vigenteDesde }}</div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                      <span
+                        class="badge"
+                        [class.bg-success]="a.activa"
+                        [class.bg-secondary]="!a.activa"
+                      >
+                        {{ a.activa ? 'Activo' : 'Inactivo' }}
+                      </span>
+
+                      <button
+                        class="btn btn-sm"
+                        [class.btn-outline-danger]="a.activa"
+                        [class.btn-outline-success]="!a.activa"
+                        (click)="toggleArancel(a)"
+                      >
+                        {{ a.activa ? 'Desactivar' : 'Activar' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <ng-template #sinAranceles>
+                <div class="text-muted">Sin aranceles cargados</div>
+              </ng-template>
+
+              <div *ngIf="mostrarFormulario[d.id]" class="border rounded p-3 mt-3">
+                <div class="row g-2">
+                  <div class="col-md-3">
+                    <label class="form-label">Categoría</label>
+                    <input
+                      class="form-control form-control-sm"
+                      [(ngModel)]="nuevoArancelPorDisciplina[d.id].categoria"
+                      name="categoria_{{ d.id }}"
+                      placeholder="Ej: GENERAL"
+                    />
+                  </div>
+
+                  <div class="col-md-2">
+                    <label class="form-label">Social</label>
+                    <input
+                      type="number"
+                      class="form-control form-control-sm"
+                      [(ngModel)]="nuevoArancelPorDisciplina[d.id].montoSocial"
+                      name="social_{{ d.id }}"
+                      min="0"
+                    />
+                  </div>
+
+                  <div class="col-md-2">
+                    <label class="form-label">Deportivo</label>
+                    <input
+                      type="number"
+                      class="form-control form-control-sm"
+                      [(ngModel)]="nuevoArancelPorDisciplina[d.id].montoDeportivo"
+                      name="deportivo_{{ d.id }}"
+                      min="0"
+                    />
+                  </div>
+
+                  <div class="col-md-2">
+                    <label class="form-label">Prep. física</label>
+                    <input
+                      type="number"
+                      class="form-control form-control-sm"
+                      [(ngModel)]="nuevoArancelPorDisciplina[d.id].montoPreparacionFisica"
+                      name="prep_{{ d.id }}"
+                      min="0"
+                    />
+                  </div>
+
+                  <div class="col-md-3">
+                    <label class="form-label">Vigente desde</label>
+                    <input
+                      type="date"
+                      class="form-control form-control-sm"
+                      [(ngModel)]="nuevoArancelPorDisciplina[d.id].vigenteDesde"
+                      name="vigente_{{ d.id }}"
+                    />
+                  </div>
+                </div>
+
+                <div class="mt-3 d-flex justify-content-end gap-2">
+                  <button class="btn btn-sm btn-outline-secondary" (click)="toggleFormulario(d.id)">
+                    Cancelar
+                  </button>
+
+                  <button
+                    class="btn btn-sm btn-primary"
+                    (click)="guardarArancel(d.id)"
+                    [disabled]="guardandoArancel[d.id]"
+                  >
+                    <span
+                      *ngIf="guardandoArancel[d.id]"
+                      class="spinner-border spinner-border-sm me-2"
+                    ></span>
+                    Guardar arancel
+                  </button>
+                </div>
+              </div>
+            </td>
+
+            <td class="text-end">
+              <div class="d-flex justify-content-end gap-2">
+                <button
+                  class="btn btn-sm btn-primary"
+                  (click)="toggleFormulario(d.id)"
+                  [disabled]="!d.activa"
+                >
+                  Nuevo arancel
+                </button>
+
+                <button
+                  class="btn btn-sm btn-outline-primary"
+                  (click)="toggleDisciplina(d)"
+                  [disabled]="loading"
+                >
+                  {{ d.activa ? 'Desactivar' : 'Activar' }}
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading && items.length === 0">
+            <td colspan="5" class="text-center text-muted py-4">Sin disciplinas</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

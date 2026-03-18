@@ -1,0 +1,38 @@
+.footer {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(90deg, #071122 0%, #08152b 50%, #071122 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 18px 32px;
+  color: #f3f4f6;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.scroll-top {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: #22c55e;
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  z-index: 1000;
+}
+
+.scroll-top:hover {
+  transform: translateY(-2px);
+}

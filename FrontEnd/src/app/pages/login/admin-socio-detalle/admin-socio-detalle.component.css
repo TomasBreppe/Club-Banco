@@ -1,0 +1,23 @@
+.card {
+  border-radius: 14px;
+  border: 1px solid #e9ecef;
+}
+
+.card-header {
+  background: #fff;
+  font-size: 1.05rem;
+}
+
+.badge {
+  font-size: 0.85rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+}
+
+.table th {
+  white-space: nowrap;
+}
+
+.alert {
+  border-radius: 12px;
+}

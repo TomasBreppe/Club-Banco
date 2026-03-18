@@ -1,0 +1,21 @@
+<div class="container py-5" style="max-width: 420px;">
+  <h3 class="mb-3">Club Banco - Admin</h3>
+
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <form (ngSubmit)="submit()">
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input class="form-control" [(ngModel)]="email" name="email" required />
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <input class="form-control" [(ngModel)]="password" name="password" type="password" required />
+    </div>
+
+    <button class="btn btn-primary w-100" [disabled]="loading">
+      {{ loading ? 'Ingresando...' : 'Ingresar' }}
+    </button>
+  </form>
+</div>

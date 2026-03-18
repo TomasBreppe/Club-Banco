@@ -1,0 +1,158 @@
+<div class="admin-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="brand">
+        <div class="brand-logo">
+          <i class="bi bi-bank2"></i>
+        </div>
+
+        <div class="brand-text">
+          <div class="brand-title">Club Banco</div>
+          <div class="brand-sub">Panel administrador</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-menu">
+      <a routerLink="/admin/home" routerLinkActive="active" class="menu-item">
+        <i class="bi bi-house-door-fill"></i>
+        <span>Inicio</span>
+      </a>
+
+      <a routerLink="/admin/socios" routerLinkActive="active" class="menu-item">
+        <i class="bi bi-people-fill"></i>
+        <span>Socios</span>
+      </a>
+
+      <a routerLink="/admin/disciplinas" routerLinkActive="active" class="menu-item">
+        <i class="bi bi-journal-check"></i>
+        <span>Disciplinas</span>
+      </a>
+
+    <!--  <a routerLink="/admin/pagos" routerLinkActive="active" class="menu-item">
+        <i class="bi bi-cash-coin"></i>
+        <span>Pagos</span>
+      </a> -->
+
+      <a routerLink="/admin/dashboard" routerLinkActive="active" class="menu-item">
+        <i class="bi bi-bar-chart-line-fill"></i>
+        <span>Dashboard</span>
+      </a>
+    </nav>
+
+    <!--  <div class="sidebar-footer">
+      <ng-container *ngIf="stats$ | async as st; else statsLoadingSide">
+        <div class="side-stats">
+          <div class="side-stat">
+            <span>Socios</span>
+            <b>{{ st.socios }}</b>
+          </div>
+
+          <div class="side-stat">
+            <span>Disciplinas</span>
+            <b>{{ st.disciplinasActivas }}</b>
+          </div>
+
+          <div class="side-stat warn">
+            <span>Deudores</span>
+            <b>{{ st.deudores }}</b>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #statsLoadingSide>
+        <div class="side-stats">
+          <div class="side-stat"><span>Socios</span><b>—</b></div>
+          <div class="side-stat"><span>Disciplinas</span><b>—</b></div>
+          <div class="side-stat warn"><span>Deudores</span><b>—</b></div>
+        </div>
+      </ng-template>
+    </div> -->
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-area">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <h5 class="page-title m-0">CLUB BANCO</h5>
+      </div>
+
+      <div class="topbar-center">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Búsqueda de socio"
+            [(ngModel)]="searchText"
+            (keyup.enter)="buscarSocio()"
+          />
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <button class="icon-btn" type="button" title="Notificaciones">
+          <i class="bi bi-bell-fill"></i>
+        </button>
+
+        <div class="user-dropdown">
+          <button class="user-btn" type="button" (click)="toggleUserMenu()">
+            <div class="avatar">
+              <img
+                *ngIf="perfil?.fotoUrl; else iconoDefault"
+                [src]="perfil?.fotoUrl"
+                alt="Foto de perfil"
+                style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%"
+              />
+
+              <ng-template #iconoDefault>
+                <i class="bi bi-person-circle"></i>
+              </ng-template>
+            </div>
+
+            <div class="user-info">
+              <div class="user-name">
+                {{ perfil?.nombre || 'Administrador' }}
+                {{ perfil?.apellido || '' }}
+              </div>
+              <div class="user-role">
+                {{ perfil?.email || 'Club Banco' }}
+              </div>
+            </div>
+
+            <i class="bi bi-chevron-down chevron" [class.rotate]="userMenuOpen"></i>
+          </button>
+
+          <div class="user-menu" *ngIf="userMenuOpen">
+            <button type="button" class="dropdown-link" (click)="editarPerfil()">
+              Editar Perfil
+            </button>
+
+            <button type="button" class="dropdown-link" (click)="cambiarPassword()">
+              Cambiar Contraseña
+            </button>
+
+            <button type="button" class="dropdown-link" (click)="actualizarFoto()">
+              Actualizar Foto de Perfil
+            </button>
+
+            <hr />
+
+            <button type="button" class="dropdown-link danger" (click)="logout()">
+              Cerrar Sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="content">
+      <div class="content-inner">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+  </div>
+</div>

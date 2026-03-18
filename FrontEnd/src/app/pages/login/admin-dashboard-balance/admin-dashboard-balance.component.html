@@ -1,0 +1,149 @@
+<div class="container py-4">
+  <div class="page-head mb-4">
+    <div>
+      <h2 class="mb-1">Dashboard de Balance</h2>
+      <p class="text-muted mb-0">
+        Comparación entre ingresos y gastos del período para ver el resultado neto.
+      </p>
+    </div>
+
+    <div class="period-chip">
+      <i class="bi bi-calendar3 me-2"></i>
+      {{ mesActual }}
+    </div>
+  </div>
+
+  <div class="dashboard-nav mb-4">
+    <a routerLink="/admin/dashboard" class="nav-chip">General</a>
+    <a routerLink="/admin/dashboard/socios" class="nav-chip">Socios</a>
+    <a routerLink="/admin/dashboard/gastos" class="nav-chip">Gastos</a>
+    <a routerLink="/admin/dashboard/ingresos" class="nav-chip">Ingresos</a>
+    <a routerLink="/admin/dashboard/balance" class="nav-chip active">Balance</a>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Fecha desde</label>
+          <input
+            type="date"
+            class="form-control"
+            [(ngModel)]="fechaDesde"
+          />
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Fecha hasta</label>
+          <input
+            type="date"
+            class="form-control"
+            [(ngModel)]="fechaHasta"
+          />
+        </div>
+
+        <div class="col-md-4">
+          <div class="d-flex gap-2">
+            <button class="btn btn-dark w-100" (click)="filtrar()">
+              Filtrar
+            </button>
+
+            <button class="btn btn-outline-secondary w-100" (click)="limpiarFiltros()">
+              Limpiar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <div *ngIf="cargando" class="text-center my-4">
+    <div class="spinner-border" role="status"></div>
+    <div class="mt-2">Cargando balance...</div>
+  </div>
+
+  <ng-container *ngIf="!cargando && resumen">
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Ingresos del período</h6>
+            <h2 class="text-success">
+              {{ resumen.ingresosMes | currency:'ARS':'symbol':'1.2-2' }}
+            </h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Gastos del período</h6>
+            <h2 class="text-danger">
+              {{ resumen.gastosMes | currency:'ARS':'symbol':'1.2-2' }}
+            </h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Neto del período</h6>
+            <h2 [class]="getNetoClass()">
+              {{ resumen.netoMes | currency:'ARS':'symbol':'1.2-2' }}
+            </h2>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Comparación del período</h5>
+        <div class="chart-box">
+          <canvas #chartBalance></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="mb-3">Resumen</h5>
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="resume-box border rounded-3 p-3 h-100">
+              <div class="text-muted small mb-1">Ingresos</div>
+              <div class="fw-semibold fs-5 text-success">
+                {{ resumen.ingresosMes | currency:'ARS':'symbol':'1.2-2' }}
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="resume-box border rounded-3 p-3 h-100">
+              <div class="text-muted small mb-1">Gastos</div>
+              <div class="fw-semibold fs-5 text-danger">
+                {{ resumen.gastosMes | currency:'ARS':'symbol':'1.2-2' }}
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <div class="resume-box border rounded-3 p-3 h-100">
+              <div class="text-muted small mb-1">Resultado final</div>
+              <div class="fw-semibold fs-5" [class]="getNetoClass()">
+                {{ resumen.netoMes | currency:'ARS':'symbol':'1.2-2' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

@@ -1,0 +1,208 @@
+<div class="container py-4">
+  <div class="page-head mb-4">
+    <div>
+      <h2 class="mb-1">Dashboard de Socios</h2>
+      <p class="text-muted mb-0">
+        Estado general de socios, disciplina, actividad y situación de pago.
+      </p>
+    </div>
+
+    <div class="period-chip">
+      <i class="bi bi-calendar3 me-2"></i>
+      {{ mesActual }}
+    </div>
+  </div>
+
+  <div class="dashboard-nav mb-4">
+    <a routerLink="/admin/dashboard" class="nav-chip">General</a>
+    <a routerLink="/admin/dashboard/socios" class="nav-chip active">Socios</a>
+    <a routerLink="/admin/dashboard/gastos" class="nav-chip">Gastos</a>
+    <a routerLink="/admin/dashboard/ingresos" class="nav-chip">Ingresos</a>
+    <a routerLink="/admin/dashboard/balance" class="nav-chip">Balance</a>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <div *ngIf="cargando" class="text-center my-4">
+    <div class="spinner-border" role="status"></div>
+    <div class="mt-2">Cargando dashboard...</div>
+  </div>
+
+  <ng-container *ngIf="!cargando && resumen">
+    <div class="row g-3 mb-4">
+      <div class="col-md-6 col-lg">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Total socios</h6>
+            <h2>{{ resumen.totalSocios }}</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Activos</h6>
+            <h2>{{ resumen.activos }}</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Inactivos</h6>
+            <h2>{{ resumen.inactivos }}</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Al día</h6>
+            <h2>{{ resumen.alDia }}</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg">
+        <div class="card card-dashboard shadow-sm h-100">
+          <div class="card-body text-center">
+            <h6 class="text-muted">Con deuda</h6>
+            <h2>{{ resumen.debe }}</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="mb-3">Estado del socio</h5>
+            <div class="chart-box">
+              <canvas #chartActivos></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="mb-3">Estado de pago</h5>
+            <div class="chart-box">
+              <canvas #chartPagos></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="mb-3">Filtros</h5>
+
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Disciplina</label>
+            <select class="form-select" [(ngModel)]="filtros.disciplinaId">
+              <option value="">Todas</option>
+              <option *ngFor="let d of disciplinas" [value]="d.id">
+                {{ d.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Estado socio</label>
+            <select class="form-select" [(ngModel)]="filtros.activo">
+              <option value="">Todos</option>
+              <option value="true">Activos</option>
+              <option value="false">Inactivos</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Estado pago</label>
+            <select class="form-select" [(ngModel)]="filtros.estadoPago">
+              <option value="">Todos</option>
+              <option value="AL_DIA">Al día</option>
+              <option value="DEBE">Debe</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Buscar</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="filtros.q"
+              placeholder="Nombre, apellido o DNI"
+            />
+          </div>
+
+          <div class="col-md-6 col-lg-3">
+            <button class="btn btn-dark w-100" (click)="cargarDashboard()">
+              Filtrar
+            </button>
+          </div>
+
+          <div class="col-md-6 col-lg-3">
+            <button class="btn btn-outline-secondary w-100" (click)="limpiarFiltros()">
+              Limpiar filtros
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="mb-3">Listado de socios</h5>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Socio</th>
+                <th>DNI</th>
+                <th>Disciplina</th>
+                <th>Estado socio</th>
+                <th>Estado pago</th>
+                <th>Vigencia hasta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of socios">
+                <td>{{ s.apellido }}, {{ s.nombre }}</td>
+                <td>{{ s.dni }}</td>
+                <td>{{ s.disciplinaNombre }}</td>
+                <td>
+                  <span [class]="getEstadoActivoClass(s.activo)">
+                    {{ s.activo ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td>
+                  <span [class]="getEstadoPagoClass(s.estadoPago)">
+                    {{ s.estadoPago === 'AL_DIA' ? 'Al día' : 'Debe' }}
+                  </span>
+                </td>
+                <td>{{ s.vigenciaHasta || '-' }}</td>
+              </tr>
+
+              <tr *ngIf="socios.length === 0">
+                <td colspan="6" class="text-center text-muted py-4">
+                  No se encontraron socios con los filtros seleccionados.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

@@ -1,0 +1,165 @@
+<div class="container py-4">
+  <div class="page-head mb-4">
+    <div>
+      <h2 class="mb-1">Dashboard General</h2>
+      <p class="text-muted mb-0">
+        Resumen general del club y acceso a los paneles específicos.
+      </p>
+    </div>
+
+    <div class="period-chip">
+      <i class="bi bi-calendar3 me-2"></i>
+      {{ mesActual }}
+    </div>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <div *ngIf="cargando" class="text-center my-4">
+    <div class="spinner-border" role="status"></div>
+    <div class="mt-2">Cargando dashboard general...</div>
+  </div>
+
+  <ng-container *ngIf="!cargando && data">
+    <div class="row g-3 mb-4">
+      <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card shadow-sm h-100 border-start border-primary border-4">
+          <div class="card-body">
+            <div class="kpi-label">Socios activos</div>
+            <div class="kpi-value text-primary">{{ data.sociosActivos }}</div>
+            <div class="kpi-sub">Actualmente habilitados</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card shadow-sm h-100 border-start border-danger border-4">
+          <div class="card-body">
+            <div class="kpi-label">Gastos del mes</div>
+            <div class="kpi-value text-danger">
+              {{ data.gastosMes | currency:'ARS':'symbol':'1.2-2' }}
+            </div>
+            <div class="kpi-sub">Egresos registrados</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card shadow-sm h-100 border-start border-success border-4">
+          <div class="card-body">
+            <div class="kpi-label">Ingresos del mes</div>
+            <div class="kpi-value text-success">
+              {{ data.ingresosMes | currency:'ARS':'symbol':'1.2-2' }}
+            </div>
+            <div class="kpi-sub">Pagos registrados</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-xl-3">
+        <div
+          class="card kpi-card shadow-sm h-100"
+          [class.border-success]="data.balanceMes >= 0"
+          [class.border-danger]="data.balanceMes < 0"
+          style="border-left-width: 4px !important; border-left-style: solid;"
+        >
+          <div class="card-body">
+            <div class="kpi-label">Balance del mes</div>
+            <div class="kpi-value" [class]="getBalanceClass()">
+              {{ data.balanceMes | currency:'ARS':'symbol':'1.2-2' }}
+            </div>
+            <div class="kpi-sub">Ingresos menos gastos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6 col-xl-3">
+        <a routerLink="/admin/dashboard/socios" class="text-decoration-none">
+          <div class="card dashboard-card h-100 shadow-sm">
+            <div class="card-body">
+              <div class="icon-box bg-primary-subtle text-primary">
+                <i class="bi bi-people-fill"></i>
+              </div>
+
+              <h5 class="mt-3 mb-2 text-dark">Socios</h5>
+              <p class="text-muted mb-3">
+                Estado de socios, activos, inactivos, al día y con deuda.
+              </p>
+
+              <div class="go-link">
+                Ver dashboard <i class="bi bi-arrow-right-short"></i>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-md-6 col-xl-3">
+        <a routerLink="/admin/dashboard/gastos" class="text-decoration-none">
+          <div class="card dashboard-card h-100 shadow-sm">
+            <div class="card-body">
+              <div class="icon-box bg-danger-subtle text-danger">
+                <i class="bi bi-receipt-cutoff"></i>
+              </div>
+
+              <h5 class="mt-3 mb-2 text-dark">Gastos</h5>
+              <p class="text-muted mb-3">
+                Gastos del club, categorías, montos y seguimiento mensual.
+              </p>
+
+              <div class="go-link">
+                Ver dashboard <i class="bi bi-arrow-right-short"></i>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-md-6 col-xl-3">
+        <a routerLink="/admin/dashboard/ingresos" class="text-decoration-none">
+          <div class="card dashboard-card h-100 shadow-sm">
+            <div class="card-body">
+              <div class="icon-box bg-success-subtle text-success">
+                <i class="bi bi-cash-stack"></i>
+              </div>
+
+              <h5 class="mt-3 mb-2 text-dark">Ingresos</h5>
+              <p class="text-muted mb-3">
+                Ingresos por pagos, medios de pago y análisis mensual.
+              </p>
+
+              <div class="go-link">
+                Ver dashboard <i class="bi bi-arrow-right-short"></i>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+
+      <div class="col-md-6 col-xl-3">
+        <a routerLink="/admin/dashboard/balance" class="text-decoration-none">
+          <div class="card dashboard-card h-100 shadow-sm">
+            <div class="card-body">
+              <div class="icon-box bg-warning-subtle text-warning">
+                <i class="bi bi-bar-chart-line-fill"></i>
+              </div>
+
+              <h5 class="mt-3 mb-2 text-dark">Balance</h5>
+              <p class="text-muted mb-3">
+                Comparación entre ingresos y gastos para ver el neto del club.
+              </p>
+
+              <div class="go-link">
+                Ver dashboard <i class="bi bi-arrow-right-short"></i>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+  </ng-container>
+</div>
