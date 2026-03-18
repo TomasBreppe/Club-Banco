@@ -67,6 +67,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
     'EVENTOS',
     'FUTBOL_TORNEOS',
     'FUTBOL_ALQUILERES',
+    'PLAYAS'
   ];
 
   mediosIngresoManual: string[] = ['EFECTIVO', 'BANCO'];

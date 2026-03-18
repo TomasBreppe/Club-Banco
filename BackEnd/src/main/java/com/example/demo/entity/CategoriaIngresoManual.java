@@ -6,5 +6,6 @@ public enum CategoriaIngresoManual {
     MUTUAL,
     EVENTOS,
     FUTBOL_TORNEOS,
-    FUTBOL_ALQUILERES
+    FUTBOL_ALQUILERES,
+    PLAYAS
 }
