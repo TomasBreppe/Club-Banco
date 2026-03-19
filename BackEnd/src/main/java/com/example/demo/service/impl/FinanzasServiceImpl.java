@@ -220,56 +220,52 @@ public class FinanzasServiceImpl implements FinanzasService {
             }
             periodo = null;
         } else {
-            periodo = null;
+            return new BaseResponse<>("Concepto inválido", 400, null);
         }
 
         DisciplinaEntity disciplina = socio.getDisciplina();
-        ArancelDisciplinaEntity arancel = socio.getArancelDisciplina();
+        ArancelDisciplinaEntity arancel = null;
 
-        if (dto.getArancelDisciplinaId() != null) {
-            arancel = arancelDisciplinaRepository.findById(dto.getArancelDisciplinaId()).orElse(null);
-            if (arancel == null) {
-                return new BaseResponse<>("Arancel no encontrado", 404, null);
-            }
-            disciplina = arancel.getDisciplina();
-        } else if (arancel != null) {
-            disciplina = arancel.getDisciplina();
-        } else if (dto.getDisciplinaId() != null && !Objects.equals(dto.getDisciplinaId(), disciplina.getId())) {
-            return new BaseResponse<>("La disciplina enviada no coincide con la del socio", 400, null);
-        }
-
-        BigDecimal montoSocial;
-        BigDecimal montoDisciplina;
-        BigDecimal montoPreparacionFisica;
+        BigDecimal montoSocial = BigDecimal.ZERO;
+        BigDecimal montoDisciplina = BigDecimal.ZERO;
+        BigDecimal montoPreparacionFisica = BigDecimal.ZERO;
         BigDecimal montoTotal;
-        String categoria;
+        String categoria = null;
 
-        if (arancel != null) {
+        if ("CUOTA_MENSUAL".equals(concepto)) {
+            arancel = socio.getArancelDisciplina();
+
+            if (dto.getArancelDisciplinaId() != null) {
+                arancel = arancelDisciplinaRepository.findById(dto.getArancelDisciplinaId()).orElse(null);
+                if (arancel == null) {
+                    return new BaseResponse<>("Arancel no encontrado", 404, null);
+                }
+            }
+
+            if (arancel == null) {
+                return new BaseResponse<>("El socio no tiene arancel asociado", 400, null);
+            }
+
+            disciplina = arancel.getDisciplina();
             montoSocial = safe(arancel.getMontoSocial());
             montoDisciplina = safe(arancel.getMontoDeportivo());
             montoPreparacionFisica = safe(arancel.getMontoPreparacionFisica());
             montoTotal = montoSocial.add(montoDisciplina).add(montoPreparacionFisica);
             categoria = arancel.getCategoria();
+
         } else {
-            montoSocial = safe(dto.getMontoSocial());
-            montoDisciplina = safe(dto.getMontoDisciplina());
-            montoPreparacionFisica = safe(dto.getMontoPreparacionFisica());
+            // INSCRIPCION: se carga manualmente, no usa arancel
             montoTotal = safe(dto.getMontoTotal());
 
             if (montoTotal.compareTo(BigDecimal.ZERO) <= 0) {
-                montoTotal = montoSocial.add(montoDisciplina).add(montoPreparacionFisica);
+                return new BaseResponse<>("Monto total debe ser mayor a 0", 400, null);
             }
 
-            BigDecimal totalCalculado = montoSocial.add(montoDisciplina).add(montoPreparacionFisica);
-            if (montoTotal.compareTo(totalCalculado) != 0) {
-                return new BaseResponse<>("El monto total no coincide con la suma de social + disciplina + preparación física", 400, null);
-            }
-
-            categoria = dto.getCategoria();
-        }
-
-        if (montoTotal.compareTo(BigDecimal.ZERO) <= 0) {
-            return new BaseResponse<>("Monto total debe ser mayor a 0", 400, null);
+            montoSocial = BigDecimal.ZERO;
+            montoDisciplina = BigDecimal.ZERO;
+            montoPreparacionFisica = BigDecimal.ZERO;
+            categoria = null;
+            arancel = null;
         }
 
         PagoEntity pago = PagoEntity.builder()
