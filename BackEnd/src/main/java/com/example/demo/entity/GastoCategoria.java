@@ -7,5 +7,6 @@ public enum GastoCategoria {
     LIMPIEZA,
     EVENTOS,
     HONORARIOS,
+    SUELDOS,
     OTROS
 }

@@ -5,6 +5,7 @@ export type GastoCategoria =
   | 'LIMPIEZA'
   | 'EVENTOS'
   | 'HONORARIOS'
+  | 'SUELDOS'
   | 'OTROS';
 
 export interface Gasto {

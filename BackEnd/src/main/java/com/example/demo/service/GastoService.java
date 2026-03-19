@@ -14,6 +14,7 @@ public interface GastoService {
 
     BaseResponse<List<GastoDto>> listar(
             String categoria,
+            String concepto,
             LocalDate fechaDesde,
             LocalDate fechaHasta,
             String q
@@ -21,6 +22,7 @@ public interface GastoService {
 
     BaseResponse<DashboardGastosResponseDto> dashboard(
             String categoria,
+            String concepto,
             LocalDate fechaDesde,
             LocalDate fechaHasta,
             String q

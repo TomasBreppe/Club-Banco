@@ -26,20 +26,22 @@ public class AdminGastoController {
     @GetMapping
     public ResponseEntity<BaseResponse<List<GastoDto>>> listar(
             @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) String concepto,
             @RequestParam(required = false) LocalDate fechaDesde,
             @RequestParam(required = false) LocalDate fechaHasta,
             @RequestParam(required = false) String q
     ) {
-        return ResponseEntity.ok(gastoService.listar(categoria, fechaDesde, fechaHasta, q));
+        return ResponseEntity.ok(gastoService.listar(categoria, concepto, fechaDesde, fechaHasta, q));
     }
 
     @GetMapping("/dashboard")
     public ResponseEntity<BaseResponse<DashboardGastosResponseDto>> dashboard(
             @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) String concepto,
             @RequestParam(required = false) LocalDate fechaDesde,
             @RequestParam(required = false) LocalDate fechaHasta,
             @RequestParam(required = false) String q
     ) {
-        return ResponseEntity.ok(gastoService.dashboard(categoria, fechaDesde, fechaHasta, q));
+        return ResponseEntity.ok(gastoService.dashboard(categoria, concepto, fechaDesde, fechaHasta, q));
     }
 }

@@ -23,6 +23,8 @@ import {
 
 import { GastosService } from '../../../service/gastos.service';
 import { ExcelExportService } from '../../../service/excel-export.service';
+import { DisciplinasService } from '../../../service/disciplinas.service';
+import { DisciplinaDto } from '../../../features/disciplinas.models';
 import {
   DashboardGastosResumen,
   Gasto,
@@ -43,6 +45,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
 export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
   private gastosService = inject(GastosService);
   private excelExportService = inject(ExcelExportService);
+  private disciplinasService = inject(DisciplinasService);
   private cdr = inject(ChangeDetectorRef);
   private datePipe = inject(DatePipe);
 
@@ -53,26 +56,57 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
 
   loading = false;
   cargando = false;
+  cargandoDisciplinas = false;
   guardando = false;
   error: string | null = null;
   ok: string | null = null;
 
   resumen: DashboardGastosResumen | null = null;
   gastos: Gasto[] = [];
+  disciplinas: DisciplinaDto[] = [];
   mesActual = '';
 
   categorias: GastoCategoria[] = [
-    'IMPUESTOS',
     'DISCIPLINAS',
-    'MANTENIMIENTO',
-    'LIMPIEZA',
     'EVENTOS',
     'HONORARIOS',
+    'IMPUESTOS',
+    'LIMPIEZA',
+    'MANTENIMIENTO',
+    'SUELDOS',
     'OTROS',
   ];
 
+  conceptosPorCategoria: Record<string, string[]> = {
+    IMPUESTOS: [
+      'ADT',
+      'Aguas cordobesas',
+      'Arca',
+      'Ecogas',
+      'Epec',
+      'Internet',
+      'Seguros',
+      'Telecom',
+      'Otros',
+    ],
+    DISCIPLINAS: [],
+    MANTENIMIENTO: ['Otros'],
+    LIMPIEZA: ['Otros'],
+    EVENTOS: ['Otros'],
+    HONORARIOS: ['Aimar Alexis', 'Guerrero Santiago'],
+    SUELDOS: [
+      'Laso Marcos',
+      'Maldonado Carmen',
+      'Ramirez Patricia',
+      'Rivas Jesica',
+      'Toledo Gustavo',
+    ],
+    OTROS: ['Otros'],
+  };
+
   filtros = {
     categoria: '',
+    concepto: '',
     fechaDesde: '',
     fechaHasta: '',
     q: '',
@@ -89,6 +123,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
 
   ngOnInit(): void {
     this.mesActual = this.datePipe.transform(new Date(), "MMMM 'de' yyyy", 'es-AR') ?? '';
+    this.cargarDisciplinas();
     this.cargarDashboard();
   }
 
@@ -99,6 +134,68 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
     }
   }
 
+  get conceptosDisponibles(): string[] {
+    if (!this.form.categoria) return [];
+
+    if (this.form.categoria === 'DISCIPLINAS') {
+      return this.disciplinas
+        .filter((d) => d?.nombre)
+        .map((d) => d.nombre)
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    return this.conceptosPorCategoria[this.form.categoria] || [];
+  }
+
+  get conceptosFiltroDisponibles(): string[] {
+    if (!this.filtros.categoria) return [];
+
+    if (this.filtros.categoria === 'DISCIPLINAS') {
+      return this.disciplinas
+        .filter((d) => d?.nombre)
+        .map((d) => d.nombre)
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    return this.conceptosPorCategoria[this.filtros.categoria] || [];
+  }
+
+  onCategoriaChange(): void {
+    this.form.concepto = '';
+  }
+
+  onFiltroCategoriaChange(): void {
+    this.filtros.concepto = '';
+  }
+
+  cargarDisciplinas(): void {
+    this.cargandoDisciplinas = true;
+    this.cdr.detectChanges();
+
+    this.disciplinasService
+      .listar()
+      .pipe(
+        finalize(() => {
+          this.cargandoDisciplinas = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (res) => {
+          if (res.status === 200 && res.data) {
+            this.disciplinas = res.data;
+          } else {
+            this.disciplinas = [];
+          }
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.disciplinas = [];
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
   cargarDashboard(): void {
     this.error = null;
     this.cargando = true;
@@ -107,6 +204,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
     this.gastosService
       .dashboard({
         categoria: this.filtros.categoria || null,
+        concepto: this.filtros.concepto || null,
         fechaDesde: this.filtros.fechaDesde || null,
         fechaHasta: this.filtros.fechaHasta || null,
         q: this.filtros.q || null,
@@ -220,6 +318,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
   limpiarFiltros(): void {
     this.filtros = {
       categoria: '',
+      concepto: '',
       fechaDesde: '',
       fechaHasta: '',
       q: '',
@@ -235,6 +334,10 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
     const categoria = this.filtros.categoria
       ? this.filtros.categoria.toLowerCase()
       : 'todas';
+
+    const concepto = this.filtros.concepto?.trim()
+      ? this.filtros.concepto.trim().replace(/\s+/g, '_')
+      : 'todos';
 
     const fechaDesde = this.filtros.fechaDesde || 'sin_desde';
     const fechaHasta = this.filtros.fechaHasta || 'sin_hasta';
@@ -252,7 +355,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
       Monto: Number(g.monto ?? 0),
     }));
 
-    const fileName = `gastos_${categoria}_${fechaDesde}_${fechaHasta}_${busqueda}`;
+    const fileName = `gastos_${categoria}_${concepto}_${fechaDesde}_${fechaHasta}_${busqueda}`;
 
     this.excelExportService.exportToExcel(data, fileName, 'Gastos');
   }
@@ -293,6 +396,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
               '#ffc107',
               '#6f42c1',
               '#fd7e14',
+              '#20c997',
               '#6c757d',
             ],
             borderWidth: 1,

@@ -67,16 +67,16 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
   };
 
   categoriasIngresoManual: string[] = [
-    'MANTOVANI',
     'DIEF',
-    'MUTUAL',
     'EVENTOS',
-    'FUTBOL_TORNEOS',
     'FUTBOL_ALQUILERES',
+    'FUTBOL_TORNEOS',
+    'MANTOVANI',
+    'MUTUAL',
     'PLAYAS',
   ];
 
-  mediosIngresoManual: string[] = ['EFECTIVO', 'BANCO'];
+  mediosIngresoManual: string[] = ['BANCO', 'EFECTIVO'];
 
   formIngresoManual: IngresoManualCreateRequest = {
     fecha: new Date().toISOString().slice(0, 10),

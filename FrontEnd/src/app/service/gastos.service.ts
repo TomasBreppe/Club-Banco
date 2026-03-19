@@ -22,6 +22,7 @@ export class GastosService {
 
   listar(filtros?: {
     categoria?: string | null;
+    concepto?: string | null;
     fechaDesde?: string | null;
     fechaHasta?: string | null;
     q?: string | null;
@@ -30,6 +31,10 @@ export class GastosService {
 
     if (filtros?.categoria) {
       params = params.set('categoria', filtros.categoria);
+    }
+
+    if (filtros?.concepto?.trim()) {
+      params = params.set('concepto', filtros.concepto.trim());
     }
 
     if (filtros?.fechaDesde) {
@@ -49,6 +54,7 @@ export class GastosService {
 
   dashboard(filtros?: {
     categoria?: string | null;
+    concepto?: string | null;
     fechaDesde?: string | null;
     fechaHasta?: string | null;
     q?: string | null;
@@ -57,6 +63,10 @@ export class GastosService {
 
     if (filtros?.categoria) {
       params = params.set('categoria', filtros.categoria);
+    }
+
+    if (filtros?.concepto?.trim()) {
+      params = params.set('concepto', filtros.concepto.trim());
     }
 
     if (filtros?.fechaDesde) {

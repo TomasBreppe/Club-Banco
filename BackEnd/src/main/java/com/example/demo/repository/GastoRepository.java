@@ -12,21 +12,23 @@ import java.util.List;
 public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
 
     @Query("""
-    SELECT g
-    FROM GastoEntity g
-    WHERE g.activo = true
-      AND (:categoria IS NULL OR g.categoria = :categoria)
-      AND g.fecha >= :fechaDesde
-      AND g.fecha <= :fechaHasta
-      AND (
-        :q = '' OR
-        lower(g.concepto) LIKE concat('%', lower(cast(:q as string)), '%') OR
-        lower(coalesce(g.descripcion, '')) LIKE concat('%', lower(cast(:q as string)), '%')
-      )
-    ORDER BY g.fecha DESC, g.id DESC
-""")
+        SELECT g
+        FROM GastoEntity g
+        WHERE g.activo = true
+          AND (:categoria IS NULL OR g.categoria = :categoria)
+          AND (:concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
+          AND g.fecha >= :fechaDesde
+          AND g.fecha <= :fechaHasta
+          AND (
+            :q = '' OR
+            lower(g.concepto) LIKE concat('%', lower(cast(:q as string)), '%') OR
+            lower(coalesce(g.descripcion, '')) LIKE concat('%', lower(cast(:q as string)), '%')
+          )
+        ORDER BY g.fecha DESC, g.id DESC
+    """)
     List<GastoEntity> buscar(
             @Param("categoria") GastoCategoria categoria,
+            @Param("concepto") String concepto,
             @Param("fechaDesde") LocalDate fechaDesde,
             @Param("fechaHasta") LocalDate fechaHasta,
             @Param("q") String q
@@ -37,6 +39,7 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
         FROM GastoEntity g
         WHERE g.activo = true
           AND (:categoria IS NULL OR g.categoria = :categoria)
+          AND (:concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
           AND g.fecha >= :fechaDesde
           AND g.fecha <= :fechaHasta
           AND (
@@ -47,6 +50,7 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
     """)
     BigDecimal totalDashboardFiltrado(
             @Param("categoria") GastoCategoria categoria,
+            @Param("concepto") String concepto,
             @Param("fechaDesde") LocalDate fechaDesde,
             @Param("fechaHasta") LocalDate fechaHasta,
             @Param("q") String q
@@ -57,6 +61,7 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
         FROM GastoEntity g
         WHERE g.activo = true
           AND (:categoria IS NULL OR g.categoria = :categoria)
+          AND (:concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
           AND g.fecha >= :fechaDesde
           AND g.fecha <= :fechaHasta
           AND (
@@ -67,6 +72,7 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
     """)
     Long cantidadDashboardFiltrado(
             @Param("categoria") GastoCategoria categoria,
+            @Param("concepto") String concepto,
             @Param("fechaDesde") LocalDate fechaDesde,
             @Param("fechaHasta") LocalDate fechaHasta,
             @Param("q") String q
@@ -77,6 +83,7 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
         FROM GastoEntity g
         WHERE g.activo = true
           AND (:categoria IS NULL OR g.categoria = :categoria)
+          AND (:concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
           AND g.fecha >= :fechaDesde
           AND g.fecha <= :fechaHasta
           AND (
@@ -89,6 +96,7 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
     """)
     List<String> categoriaMayorGastoDashboardFiltrado(
             @Param("categoria") GastoCategoria categoria,
+            @Param("concepto") String concepto,
             @Param("fechaDesde") LocalDate fechaDesde,
             @Param("fechaHasta") LocalDate fechaHasta,
             @Param("q") String q

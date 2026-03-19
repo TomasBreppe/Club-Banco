@@ -58,6 +58,7 @@ public class GastoServiceImpl implements GastoService {
     @Override
     public BaseResponse<List<GastoDto>> listar(
             String categoria,
+            String concepto,
             LocalDate fechaDesde,
             LocalDate fechaHasta,
             String q
@@ -67,8 +68,9 @@ public class GastoServiceImpl implements GastoService {
         LocalDate desde = fechaDesde != null ? fechaDesde : LocalDate.of(2000, 1, 1);
         LocalDate hasta = fechaHasta != null ? fechaHasta : LocalDate.of(2999, 12, 31);
         String texto = normalizar(q);
+        String conceptoNormalizado = normalizar(concepto);
 
-        List<GastoDto> data = gastoRepository.buscar(categoriaEnum, desde, hasta, texto)
+        List<GastoDto> data = gastoRepository.buscar(categoriaEnum, conceptoNormalizado, desde, hasta, texto)
                 .stream()
                 .map(GastoMapper::toDto)
                 .toList();
@@ -79,15 +81,20 @@ public class GastoServiceImpl implements GastoService {
     @Override
     public BaseResponse<DashboardGastosResponseDto> dashboard(
             String categoria,
+            String concepto,
             LocalDate fechaDesde,
             LocalDate fechaHasta,
             String q
     ) {
         GastoCategoria categoriaEnum = parseCategoria(categoria);
         String texto = normalizar(q);
+        String conceptoNormalizado = normalizar(concepto);
 
         boolean hayFiltroFecha = fechaDesde != null || fechaHasta != null;
-        boolean hayOtrosFiltros = (categoria != null && !categoria.isBlank()) || (texto != null && !texto.isBlank());
+        boolean hayOtrosFiltros =
+                (categoria != null && !categoria.isBlank()) ||
+                        (concepto != null && !concepto.isBlank()) ||
+                        (texto != null && !texto.isBlank());
 
         LocalDate hoy = LocalDate.now();
 
@@ -99,16 +106,20 @@ public class GastoServiceImpl implements GastoService {
                 ? (fechaHasta != null ? fechaHasta : LocalDate.of(2999, 12, 31))
                 : (hayOtrosFiltros ? LocalDate.of(2999, 12, 31) : hoy.withDayOfMonth(hoy.lengthOfMonth()));
 
-        List<GastoDto> gastos = gastoRepository.buscar(categoriaEnum, desde, hasta, texto)
+        List<GastoDto> gastos = gastoRepository.buscar(categoriaEnum, conceptoNormalizado, desde, hasta, texto)
                 .stream()
                 .map(GastoMapper::toDto)
                 .toList();
 
-        BigDecimal total = gastoRepository.totalDashboardFiltrado(categoriaEnum, desde, hasta, texto);
-        Long cantidad = gastoRepository.cantidadDashboardFiltrado(categoriaEnum, desde, hasta, texto);
+        BigDecimal total = gastoRepository.totalDashboardFiltrado(
+                categoriaEnum, conceptoNormalizado, desde, hasta, texto
+        );
+        Long cantidad = gastoRepository.cantidadDashboardFiltrado(
+                categoriaEnum, conceptoNormalizado, desde, hasta, texto
+        );
 
         List<String> ranking = gastoRepository.categoriaMayorGastoDashboardFiltrado(
-                categoriaEnum, desde, hasta, texto
+                categoriaEnum, conceptoNormalizado, desde, hasta, texto
         );
         String categoriaMayor = ranking.isEmpty() ? "-" : ranking.get(0);
 
@@ -135,8 +146,8 @@ public class GastoServiceImpl implements GastoService {
         }
     }
 
-    private String normalizar(String q) {
-        if (q == null || q.trim().isBlank()) return "";
-        return q.trim();
+    private String normalizar(String texto) {
+        if (texto == null || texto.trim().isBlank()) return "";
+        return texto.trim();
     }
 }
