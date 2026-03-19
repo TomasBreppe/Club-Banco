@@ -303,8 +303,11 @@ export class AdminSocioDetalleComponent implements OnInit {
           return;
         }
       }
+
+      this.recalcularMontoTotal();
     } else {
       this.pago.periodo = null;
+      this.pago.montoTotal = Number(this.pago.montoTotal ?? 0);
     }
 
     if (!this.pago.medio?.trim()) {
@@ -312,8 +315,6 @@ export class AdminSocioDetalleComponent implements OnInit {
       this.cdr.detectChanges();
       return;
     }
-
-    this.recalcularMontoTotal();
 
     if (!this.pago.montoTotal || this.pago.montoTotal <= 0) {
       this.pagoError = 'Monto total debe ser mayor a 0';

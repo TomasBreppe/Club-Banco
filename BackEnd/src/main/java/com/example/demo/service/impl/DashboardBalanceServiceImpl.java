@@ -56,7 +56,7 @@ public class DashboardBalanceServiceImpl implements DashboardBalanceService {
 
         BigDecimal gastos = gastoRepository.totalDashboardFiltrado(
                 null,
-                null,
+                "",
                 desde,
                 hasta,
                 ""

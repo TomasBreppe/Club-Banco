@@ -16,11 +16,11 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
         FROM GastoEntity g
         WHERE g.activo = true
           AND (:categoria IS NULL OR g.categoria = :categoria)
-          AND (:concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
+          AND (:concepto IS NULL OR :concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
           AND g.fecha >= :fechaDesde
           AND g.fecha <= :fechaHasta
           AND (
-            :q = '' OR
+            :q IS NULL OR :q = '' OR
             lower(g.concepto) LIKE concat('%', lower(cast(:q as string)), '%') OR
             lower(coalesce(g.descripcion, '')) LIKE concat('%', lower(cast(:q as string)), '%')
           )
@@ -39,11 +39,11 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
         FROM GastoEntity g
         WHERE g.activo = true
           AND (:categoria IS NULL OR g.categoria = :categoria)
-          AND (:concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
+          AND (:concepto IS NULL OR :concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
           AND g.fecha >= :fechaDesde
           AND g.fecha <= :fechaHasta
           AND (
-            :q = '' OR
+            :q IS NULL OR :q = '' OR
             lower(g.concepto) LIKE concat('%', lower(cast(:q as string)), '%') OR
             lower(coalesce(g.descripcion, '')) LIKE concat('%', lower(cast(:q as string)), '%')
           )
@@ -61,11 +61,11 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
         FROM GastoEntity g
         WHERE g.activo = true
           AND (:categoria IS NULL OR g.categoria = :categoria)
-          AND (:concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
+          AND (:concepto IS NULL OR :concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
           AND g.fecha >= :fechaDesde
           AND g.fecha <= :fechaHasta
           AND (
-            :q = '' OR
+            :q IS NULL OR :q = '' OR
             lower(g.concepto) LIKE concat('%', lower(cast(:q as string)), '%') OR
             lower(coalesce(g.descripcion, '')) LIKE concat('%', lower(cast(:q as string)), '%')
           )
@@ -83,11 +83,11 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
         FROM GastoEntity g
         WHERE g.activo = true
           AND (:categoria IS NULL OR g.categoria = :categoria)
-          AND (:concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
+          AND (:concepto IS NULL OR :concepto = '' OR lower(g.concepto) = lower(cast(:concepto as string)))
           AND g.fecha >= :fechaDesde
           AND g.fecha <= :fechaHasta
           AND (
-            :q = '' OR
+            :q IS NULL OR :q = '' OR
             lower(g.concepto) LIKE concat('%', lower(cast(:q as string)), '%') OR
             lower(coalesce(g.descripcion, '')) LIKE concat('%', lower(cast(:q as string)), '%')
           )
