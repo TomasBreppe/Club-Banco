@@ -127,7 +127,6 @@ export class AdminSocioDetalleComponent implements OnInit {
 
         if (this.aranceles.length > 0) {
           const arancelSocio = this.aranceles.find((a) => a.id === this.data?.arancelDisciplinaId);
-
           const seleccionado = arancelSocio ?? this.aranceles[0];
 
           this.pago.arancelDisciplinaId = seleccionado.id;
@@ -146,12 +145,57 @@ export class AdminSocioDetalleComponent implements OnInit {
     });
   }
 
+  private cargarArancelesParaCuota(): void {
+    if (!this.aranceles.length) return;
+
+    const arancelSocio = this.aranceles.find((a) => a.id === this.data?.arancelDisciplinaId);
+    const seleccionado = arancelSocio ?? this.aranceles[0] ?? null;
+
+    if (!seleccionado) {
+      this.arancelSeleccionado = null;
+      this.pago.arancelDisciplinaId = null;
+      this.pago.categoria = null;
+      this.pago.montoSocial = 0;
+      this.pago.montoDisciplina = 0;
+      this.pago.montoPreparacionFisica = 0;
+      this.pago.montoTotal = 0;
+      return;
+    }
+
+    this.pago.arancelDisciplinaId = seleccionado.id;
+    this.onArancelChange();
+  }
+
   onConceptoChange(): void {
+    if (this.pago.concepto === 'INSCRIPCION') {
+      this.arancelSeleccionado = null;
+      this.pago.periodo = null;
+      this.pago.arancelDisciplinaId = null;
+      this.pago.categoria = null;
+      this.pago.montoSocial = 0;
+      this.pago.montoDisciplina = 0;
+      this.pago.montoPreparacionFisica = 0;
+      this.pago.montoTotal = 0;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.cargarArancelesParaCuota();
     this.autocompletarPago();
     this.cdr.detectChanges();
   }
 
   onArancelChange(): void {
+    if (this.pago.concepto === 'INSCRIPCION') {
+      this.arancelSeleccionado = null;
+      this.pago.arancelDisciplinaId = null;
+      this.pago.categoria = null;
+      this.pago.montoSocial = 0;
+      this.pago.montoDisciplina = 0;
+      this.pago.montoPreparacionFisica = 0;
+      return;
+    }
+
     const id = Number(this.pago.arancelDisciplinaId);
     this.arancelSeleccionado = this.aranceles.find((a) => a.id === id) ?? null;
 
@@ -162,10 +206,6 @@ export class AdminSocioDetalleComponent implements OnInit {
       this.pago.montoPreparacionFisica = 0;
       this.pago.montoTotal = 0;
       return;
-    }
-
-    if (this.pago.concepto === 'INSCRIPCION') {
-      return; // ❌ NO TOCAR NADA
     }
 
     this.pago.categoria = this.arancelSeleccionado.categoria;
@@ -229,6 +269,9 @@ export class AdminSocioDetalleComponent implements OnInit {
       this.pago.periodo = null;
       this.pago.arancelDisciplinaId = null;
       this.pago.categoria = null;
+      this.pago.montoSocial = 0;
+      this.pago.montoDisciplina = 0;
+      this.pago.montoPreparacionFisica = 0;
       return;
     }
   }
@@ -297,6 +340,11 @@ export class AdminSocioDetalleComponent implements OnInit {
       this.recalcularMontoTotal();
     } else {
       this.pago.periodo = null;
+      this.pago.arancelDisciplinaId = null;
+      this.pago.categoria = null;
+      this.pago.montoSocial = 0;
+      this.pago.montoDisciplina = 0;
+      this.pago.montoPreparacionFisica = 0;
       this.pago.montoTotal = Number(this.pago.montoTotal ?? 0);
     }
 
