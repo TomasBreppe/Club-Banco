@@ -87,28 +87,29 @@ public class SocioServiceImpl implements SocioService {
                 ? null
                 : estadoPago.trim().toUpperCase();
 
+        LocalDate hoy = LocalDate.now();
+
         List<SocioDto> result = socioRepository.search(
                         disciplinaId,
                         ep,
                         qLower,
                         qRaw,
-                        LocalDate.now()
+                        hoy
                 ).stream()
                 .map(s -> {
                     SocioDto dto = SocioMapper.toDto(s);
 
-                    var deudaResp = finanzasService.getDeudaBySocioId(s.getId());
+                    if (Boolean.FALSE.equals(s.getActivo())) {
+                        dto.setEstadoPago("INACTIVO");
+                        return dto;
+                    }
 
-                    if (deudaResp.getStatus() == 200 && deudaResp.getData() != null) {
-                        BigDecimal totalAdeudado = deudaResp.getData().getTotalAdeudado();
+                    LocalDate vigenciaHasta = s.getVigenciaHasta();
 
-                        if (totalAdeudado != null && totalAdeudado.compareTo(BigDecimal.ZERO) > 0) {
-                            dto.setEstadoPago("DEBE");
-                        } else {
-                            dto.setEstadoPago("AL_DIA");
-                        }
+                    if (vigenciaHasta != null && !vigenciaHasta.isBefore(hoy)) {
+                        dto.setEstadoPago("AL_DIA");
                     } else {
-                        dto.setEstadoPago("SIN_CUOTA");
+                        dto.setEstadoPago("DEBE");
                     }
 
                     return dto;

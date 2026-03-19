@@ -15,15 +15,20 @@ export class DashboardIngresosService {
   private base = environment.apiUrl;
 
   obtenerDashboard(filtros?: {
-    medio?: string | null;
+    disciplinaId?: number | null;
+    categoriaManual?: string | null;
     fechaDesde?: string | null;
     fechaHasta?: string | null;
     q?: string | null;
   }): Observable<BaseResponse<DashboardIngresosResponse>> {
     let params = new HttpParams();
 
-    if (filtros?.medio) {
-      params = params.set('medio', filtros.medio);
+    if (filtros?.disciplinaId != null) {
+      params = params.set('disciplinaId', filtros.disciplinaId);
+    }
+
+    if (filtros?.categoriaManual) {
+      params = params.set('categoriaManual', filtros.categoriaManual);
     }
 
     if (filtros?.fechaDesde) {

@@ -4,9 +4,8 @@ import com.example.demo.config.BaseResponse;
 import com.example.demo.dto.ingresos.IngresoDashboardItemDto;
 import com.example.demo.dto.pagos.DashboardIngresosResponseDto;
 import com.example.demo.dto.pagos.DashboardIngresosResumenDto;
+import com.example.demo.entity.CategoriaIngresoManual;
 import com.example.demo.entity.IngresoManualEntity;
-import com.example.demo.entity.MedioIngresoManual;
-import com.example.demo.entity.MedioPago;
 import com.example.demo.entity.PagoEntity;
 import com.example.demo.repository.IngresoManualRepository;
 import com.example.demo.repository.PagoRepository;
@@ -32,17 +31,23 @@ public class DashboardIngresosServiceImpl implements DashboardIngresosService {
     @Override
     public BaseResponse<DashboardIngresosResponseDto> dashboard(
             String medio,
+            Long disciplinaId,
+            String categoriaManual,
             LocalDate fechaDesde,
             LocalDate fechaHasta,
             String q
     ) {
-        MedioPago medioPagoCuota = parseMedioPago(medio);
-        MedioIngresoManual medioIngresoManual = parseMedioIngresoManual(medio);
-
+        CategoriaIngresoManual categoriaManualEnum = parseCategoriaIngresoManual(categoriaManual);
         String texto = normalizar(q);
 
         boolean hayFiltroFecha = fechaDesde != null || fechaHasta != null;
-        boolean hayOtrosFiltros = (medio != null && !medio.isBlank()) || (texto != null && !texto.isBlank());
+        boolean hayOtrosFiltros =
+                disciplinaId != null ||
+                        categoriaManualEnum != null ||
+                        (texto != null && !texto.isBlank());
+
+        boolean filtroDisciplina = disciplinaId != null;
+        boolean filtroCategoriaManual = categoriaManualEnum != null;
 
         LocalDate hoy = LocalDate.now();
 
@@ -57,19 +62,43 @@ public class DashboardIngresosServiceImpl implements DashboardIngresosService {
         LocalDateTime desdeDateTime = desde.atStartOfDay();
         LocalDateTime hastaDateTime = hasta.atTime(LocalTime.MAX);
 
-        List<PagoEntity> pagos;
-        if (medioPagoCuota == null) {
-            pagos = pagoRepository.buscarDashboardSinMedio(desdeDateTime, hastaDateTime, texto == null ? "" : texto);
-        } else {
-            pagos = pagoRepository.buscarDashboardConMedio(medioPagoCuota, desdeDateTime, hastaDateTime, texto == null ? "" : texto);
-        }
+        List<PagoEntity> pagos = new ArrayList<>();
+        List<IngresoManualEntity> manuales = new ArrayList<>();
 
-        List<IngresoManualEntity> manuales = ingresoManualRepository.buscarDashboard(
-                medioIngresoManual,
-                desde,
-                hasta,
-                texto == null ? "" : texto
-        );
+        // Si filtra por disciplina => SOLO cuotas
+        if (filtroDisciplina) {
+            pagos = pagoRepository.buscarDashboardPorDisciplina(
+                    disciplinaId,
+                    desdeDateTime,
+                    hastaDateTime,
+                    texto == null ? "" : texto
+            );
+        }
+        // Si filtra por categoría manual => SOLO manuales
+        else if (filtroCategoriaManual) {
+            manuales = ingresoManualRepository.buscarDashboard(
+                    categoriaManualEnum,
+                    desde,
+                    hasta,
+                    texto == null ? "" : texto
+            );
+        }
+        // Si no filtra ninguno => trae todo
+        else {
+            pagos = pagoRepository.buscarDashboardPorDisciplina(
+                    null,
+                    desdeDateTime,
+                    hastaDateTime,
+                    texto == null ? "" : texto
+            );
+
+            manuales = ingresoManualRepository.buscarDashboard(
+                    null,
+                    desde,
+                    hasta,
+                    texto == null ? "" : texto
+            );
+        }
 
         List<IngresoDashboardItemDto> items = new ArrayList<>();
 
@@ -115,53 +144,70 @@ public class DashboardIngresosServiceImpl implements DashboardIngresosService {
 
         items.sort(Comparator.comparing(IngresoDashboardItemDto::getFecha).reversed());
 
-        BigDecimal totalCuotas;
-        Long cantidadCuotas;
+        BigDecimal totalCuotas = BigDecimal.ZERO;
+        Long cantidadCuotas = 0L;
+        BigDecimal totalManual = BigDecimal.ZERO;
+        Long cantidadManual = 0L;
 
-        if (medioPagoCuota == null) {
-            totalCuotas = pagoRepository.totalDashboardFiltradoSinMedio(
+        if (filtroDisciplina) {
+            totalCuotas = pagoRepository.totalDashboardFiltradoPorDisciplina(
+                    disciplinaId,
                     desdeDateTime,
                     hastaDateTime,
                     texto == null ? "" : texto
             );
 
-            cantidadCuotas = pagoRepository.cantidadDashboardFiltradoSinMedio(
+            cantidadCuotas = pagoRepository.cantidadDashboardFiltradoPorDisciplina(
+                    disciplinaId,
                     desdeDateTime,
                     hastaDateTime,
+                    texto == null ? "" : texto
+            );
+        } else if (filtroCategoriaManual) {
+            totalManual = ingresoManualRepository.totalDashboardFiltrado(
+                    categoriaManualEnum,
+                    desde,
+                    hasta,
+                    texto == null ? "" : texto
+            );
+
+            cantidadManual = ingresoManualRepository.cantidadDashboardFiltrado(
+                    categoriaManualEnum,
+                    desde,
+                    hasta,
                     texto == null ? "" : texto
             );
         } else {
-            totalCuotas = pagoRepository.totalDashboardFiltradoConMedio(
-                    medioPagoCuota,
+            totalCuotas = pagoRepository.totalDashboardFiltradoPorDisciplina(
+                    null,
                     desdeDateTime,
                     hastaDateTime,
                     texto == null ? "" : texto
             );
 
-            cantidadCuotas = pagoRepository.cantidadDashboardFiltradoConMedio(
-                    medioPagoCuota,
+            cantidadCuotas = pagoRepository.cantidadDashboardFiltradoPorDisciplina(
+                    null,
                     desdeDateTime,
                     hastaDateTime,
+                    texto == null ? "" : texto
+            );
+
+            totalManual = ingresoManualRepository.totalDashboardFiltrado(
+                    null,
+                    desde,
+                    hasta,
+                    texto == null ? "" : texto
+            );
+
+            cantidadManual = ingresoManualRepository.cantidadDashboardFiltrado(
+                    null,
+                    desde,
+                    hasta,
                     texto == null ? "" : texto
             );
         }
 
-        BigDecimal totalManual = ingresoManualRepository.totalDashboardFiltrado(
-                medioIngresoManual,
-                desde,
-                hasta,
-                texto == null ? "" : texto
-        );
-
         BigDecimal total = totalCuotas.add(totalManual);
-
-        Long cantidadManual = ingresoManualRepository.cantidadDashboardFiltrado(
-                medioIngresoManual,
-                desde,
-                hasta,
-                texto == null ? "" : texto
-        );
-
         Long cantidad = cantidadCuotas + cantidadManual;
 
         String medioMasUsado = calcularMedioMasUsado(items);
@@ -192,19 +238,10 @@ public class DashboardIngresosServiceImpl implements DashboardIngresosService {
                 .orElse("-");
     }
 
-    private MedioPago parseMedioPago(String medio) {
-        if (medio == null || medio.isBlank()) return null;
+    private CategoriaIngresoManual parseCategoriaIngresoManual(String categoria) {
+        if (categoria == null || categoria.isBlank()) return null;
         try {
-            return MedioPago.valueOf(medio.trim().toUpperCase());
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private MedioIngresoManual parseMedioIngresoManual(String medio) {
-        if (medio == null || medio.isBlank()) return null;
-        try {
-            return MedioIngresoManual.valueOf(medio.trim().toUpperCase());
+            return CategoriaIngresoManual.valueOf(categoria.trim().toUpperCase());
         } catch (Exception e) {
             return null;
         }

@@ -19,12 +19,21 @@ public class AdminDashboardIngresosController {
     @GetMapping
     public ResponseEntity<BaseResponse<DashboardIngresosResponseDto>> dashboard(
             @RequestParam(required = false) String medio,
+            @RequestParam(required = false) Long disciplinaId,
+            @RequestParam(required = false) String categoriaManual,
             @RequestParam(required = false) LocalDate fechaDesde,
             @RequestParam(required = false) LocalDate fechaHasta,
             @RequestParam(required = false) String q
     ) {
         return ResponseEntity.ok(
-                dashboardIngresosService.dashboard(medio, fechaDesde, fechaHasta, q)
+                dashboardIngresosService.dashboard(
+                        medio,
+                        disciplinaId,
+                        categoriaManual,
+                        fechaDesde,
+                        fechaHasta,
+                        q
+                )
         );
     }
 }

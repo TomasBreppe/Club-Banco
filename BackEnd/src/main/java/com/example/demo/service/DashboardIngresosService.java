@@ -10,6 +10,8 @@ import java.time.LocalDate;
 public interface DashboardIngresosService {
     BaseResponse<DashboardIngresosResponseDto> dashboard(
             String medio,
+            Long disciplinaId,
+            String categoriaManual,
             LocalDate fechaDesde,
             LocalDate fechaHasta,
             String q

@@ -143,7 +143,8 @@
 
     <div class="card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="mb-3">Ingresos por medio de pago</h5>
+        <h5 class="mb-1">Ingresos por disciplina</h5>
+        <p class="text-muted mb-3">Distribución del total ingresado según la disciplina.</p>
         <div class="chart-box">
           <canvas #chartMedios></canvas>
         </div>
@@ -156,11 +157,21 @@
 
         <div class="row g-3">
           <div class="col-md-3">
-            <label class="form-label">Medio</label>
-            <select class="form-select" [(ngModel)]="filtros.medio">
+            <label class="form-label">Disciplina</label>
+            <select class="form-select" [(ngModel)]="filtros.disciplinaId">
+              <option value="">Todas</option>
+              <option *ngFor="let d of disciplinas" [value]="d.id">
+                {{ d.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Ingreso manual</label>
+            <select class="form-select" [(ngModel)]="filtros.categoriaManual">
               <option value="">Todos</option>
-              <option *ngFor="let m of medios" [value]="m">
-                {{ formatMedio(m) }}
+              <option *ngFor="let c of categoriasIngresoManual" [value]="c">
+                {{ formatCategoria(c) }}
               </option>
             </select>
           </div>

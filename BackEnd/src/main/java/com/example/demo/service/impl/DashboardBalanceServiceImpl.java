@@ -47,7 +47,8 @@ public class DashboardBalanceServiceImpl implements DashboardBalanceService {
                 ""
         );
 
-        BigDecimal ingresosManuales = ingresoManualRepository.totalDashboardFiltradoSinMedio(
+        BigDecimal ingresosManuales = ingresoManualRepository.totalDashboardFiltrado(
+                null,
                 desde,
                 hasta,
                 ""

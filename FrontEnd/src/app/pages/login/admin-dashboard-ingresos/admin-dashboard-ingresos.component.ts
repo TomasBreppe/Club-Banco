@@ -14,13 +14,12 @@ import { finalize } from 'rxjs/operators';
 import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js';
 
 import { DashboardIngresosService } from '../../../service/dashboard-ingresos.service';
-import {
-  DashboardIngresosResumen,
-  IngresoDashboardItem,
-} from '../../../models/ingresos.model';
+import { DashboardIngresosResumen, IngresoDashboardItem } from '../../../models/ingresos.model';
 import { IngresosManualesService } from '../../../service/ingresos-manuales.service';
 import { IngresoManualCreateRequest } from '../../../models/ingreso-manual.model';
 import { ExcelExportService } from '../../../service/excel-export.service';
+import { DisciplinasService } from '../../../service/disciplinas.service';
+import { DisciplinaDto } from '../../../features/disciplinas.models';
 
 Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
@@ -36,6 +35,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
   private dashboardIngresosService = inject(DashboardIngresosService);
   private ingresosManualesService = inject(IngresosManualesService);
   private excelExportService = inject(ExcelExportService);
+  private disciplinasService = inject(DisciplinasService);
   private cdr = inject(ChangeDetectorRef);
   private datePipe = inject(DatePipe);
 
@@ -45,18 +45,22 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
   private chartsPendientes = false;
 
   cargando = false;
+  cargandoDisciplinas = false;
   guardandoManual = false;
   error: string | null = null;
   ok: string | null = null;
 
   resumen: DashboardIngresosResumen | null = null;
   ingresos: IngresoDashboardItem[] = [];
+  disciplinas: DisciplinaDto[] = [];
   mesActual = '';
 
   medios: string[] = ['EFECTIVO', 'TRANSFERENCIA', 'BANCO', 'MERCADO_PAGO', 'TARJETA', 'OTRO'];
 
   filtros = {
     medio: '',
+    disciplinaId: '',
+    categoriaManual: '',
     fechaDesde: '',
     fechaHasta: '',
     q: '',
@@ -69,7 +73,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
     'EVENTOS',
     'FUTBOL_TORNEOS',
     'FUTBOL_ALQUILERES',
-    'PLAYAS'
+    'PLAYAS',
   ];
 
   mediosIngresoManual: string[] = ['EFECTIVO', 'BANCO'];
@@ -84,6 +88,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
 
   ngOnInit(): void {
     this.mesActual = this.datePipe.transform(new Date(), "MMMM 'de' yyyy", 'es-AR') ?? '';
+    this.cargarDisciplinas();
     this.cargarDashboard();
   }
 
@@ -94,14 +99,44 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
     }
   }
 
+  cargarDisciplinas(): void {
+    this.cargandoDisciplinas = true;
+    this.cdr.detectChanges();
+
+    this.disciplinasService
+      .listar()
+      .pipe(
+        finalize(() => {
+          this.cargandoDisciplinas = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (res) => {
+          if (res.status === 200 && res.data) {
+            this.disciplinas = res.data;
+          }
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
   cargarDashboard(): void {
     this.error = null;
     this.cargando = true;
     this.cdr.detectChanges();
 
+    const disciplinaId =
+      this.filtros.disciplinaId === '' ? null : Number(this.filtros.disciplinaId);
+
     this.dashboardIngresosService
       .obtenerDashboard({
-        medio: this.filtros.medio || null,
+        // medio: this.filtros.medio || null,
+        disciplinaId,
+        categoriaManual: this.filtros.categoriaManual || null,
         fechaDesde: this.filtros.fechaDesde || null,
         fechaHasta: this.filtros.fechaHasta || null,
         q: this.filtros.q || null,
@@ -135,6 +170,8 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
   limpiarFiltros(): void {
     this.filtros = {
       medio: '',
+      disciplinaId: '',
+      categoriaManual: '',
       fechaDesde: '',
       fechaHasta: '',
       q: '',
@@ -219,7 +256,12 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
       return;
     }
 
-    const medio = this.filtros.medio || 'todos';
+    const disciplina = this.filtros.disciplinaId
+      ? (this.disciplinas.find((d) => d.id === Number(this.filtros.disciplinaId))?.nombre ??
+        'todas')
+      : 'todas';
+
+    const categoriaManual = this.filtros.categoriaManual || 'todas';
     const fechaDesde = this.filtros.fechaDesde || 'sin_desde';
     const fechaHasta = this.filtros.fechaHasta || 'sin_hasta';
     const busqueda = this.filtros.q?.trim()
@@ -240,7 +282,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
       Descripción: i.descripcion || '-',
     }));
 
-    const fileName = `ingresos_${medio}_${fechaDesde}_${fechaHasta}_${busqueda}`;
+    const fileName = `ingresos_${disciplina}_${categoriaManual}_${fechaDesde}_${fechaHasta}_${busqueda}`;
 
     this.excelExportService.exportToExcel(data, fileName, 'Ingresos');
   }
@@ -250,18 +292,18 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
 
     const acumulado = new Map<string, number>();
 
-    for (const medio of this.medios) {
-      acumulado.set(medio, 0);
-    }
-
     for (const ingreso of this.ingresos) {
-      const key = ingreso.medio || 'OTRO';
+      const key = this.obtenerNombreGrupoDisciplina(ingreso);
       const actual = acumulado.get(key) ?? 0;
-      acumulado.set(key, actual + Number(ingreso.monto));
+      acumulado.set(key, actual + Number(ingreso.monto ?? 0));
     }
 
-    const labels = Array.from(acumulado.keys()).map((m) => this.formatMedio(m));
-    const data = Array.from(acumulado.values());
+    const entries = Array.from(acumulado.entries())
+      .filter(([, monto]) => monto > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    const labels = entries.map(([disciplina]) => disciplina);
+    const data = entries.map(([, monto]) => monto);
 
     if (this.chartMedios) {
       this.chartMedios.destroy();
@@ -274,7 +316,18 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
         datasets: [
           {
             data,
-            backgroundColor: ['#198754', '#0d6efd', '#6610f2', '#ffc107', '#dc3545', '#6c757d'],
+            backgroundColor: [
+              '#0d6efd',
+              '#198754',
+              '#6610f2',
+              '#fd7e14',
+              '#20c997',
+              '#dc3545',
+              '#6f42c1',
+              '#ffc107',
+              '#6c757d',
+              '#0dcaf0',
+            ],
             borderWidth: 2,
           },
         ],
@@ -284,9 +337,40 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
         maintainAspectRatio: false,
         plugins: {
           legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const label = context.label || '';
+                const value = Number(context.raw || 0);
+                const dataset = context.dataset.data as number[];
+                const total = dataset.reduce((acc, item) => acc + Number(item), 0);
+                const porcentaje = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+
+                return `${label}: ${value.toLocaleString('es-AR', {
+                  style: 'currency',
+                  currency: 'ARS',
+                  minimumFractionDigits: 2,
+                })} (${porcentaje}%)`;
+              },
+            },
+          },
         },
       },
     });
+  }
+
+  private obtenerNombreGrupoDisciplina(ingreso: IngresoDashboardItem): string {
+    const disciplina = ingreso.disciplinaNombre?.trim();
+
+    if (disciplina) {
+      return disciplina;
+    }
+
+    if (ingreso.origen === 'MANUAL') {
+      return 'Ingresos manuales';
+    }
+
+    return 'Sin disciplina';
   }
 
   formatMedio(medio: string | null): string {

@@ -1,5 +1,6 @@
 package com.example.demo.repository;
 
+import com.example.demo.entity.CategoriaIngresoManual;
 import com.example.demo.entity.IngresoManualEntity;
 import com.example.demo.entity.MedioIngresoManual;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,7 +18,7 @@ public interface IngresoManualRepository extends JpaRepository<IngresoManualEnti
         FROM IngresoManualEntity i
         WHERE i.fecha >= :fechaDesde
           AND i.fecha <= :fechaHasta
-          AND (:medio IS NULL OR i.medioPago = :medio)
+          AND (:categoria IS NULL OR i.categoria = :categoria)
           AND (
             :q = '' OR
             lower(cast(i.categoria as string)) LIKE concat('%', lower(:q), '%') OR
@@ -26,7 +27,7 @@ public interface IngresoManualRepository extends JpaRepository<IngresoManualEnti
         ORDER BY i.fecha DESC, i.id DESC
     """)
     List<IngresoManualEntity> buscarDashboard(
-            @Param("medio") MedioIngresoManual medio,
+            @Param("categoria") CategoriaIngresoManual categoria,
             @Param("fechaDesde") LocalDate fechaDesde,
             @Param("fechaHasta") LocalDate fechaHasta,
             @Param("q") String q
@@ -35,7 +36,7 @@ public interface IngresoManualRepository extends JpaRepository<IngresoManualEnti
     @Query("""
         SELECT COALESCE(SUM(i.monto), 0)
         FROM IngresoManualEntity i
-        WHERE (:medio IS NULL OR i.medioPago = :medio)
+        WHERE (:categoria IS NULL OR i.categoria = :categoria)
           AND i.fecha >= :fechaDesde
           AND i.fecha <= :fechaHasta
           AND (
@@ -45,7 +46,7 @@ public interface IngresoManualRepository extends JpaRepository<IngresoManualEnti
           )
     """)
     BigDecimal totalDashboardFiltrado(
-            @Param("medio") MedioIngresoManual medio,
+            @Param("categoria") CategoriaIngresoManual categoria,
             @Param("fechaDesde") LocalDate fechaDesde,
             @Param("fechaHasta") LocalDate fechaHasta,
             @Param("q") String q
@@ -54,7 +55,7 @@ public interface IngresoManualRepository extends JpaRepository<IngresoManualEnti
     @Query("""
         SELECT COUNT(i)
         FROM IngresoManualEntity i
-        WHERE (:medio IS NULL OR i.medioPago = :medio)
+        WHERE (:categoria IS NULL OR i.categoria = :categoria)
           AND i.fecha >= :fechaDesde
           AND i.fecha <= :fechaHasta
           AND (
@@ -64,24 +65,7 @@ public interface IngresoManualRepository extends JpaRepository<IngresoManualEnti
           )
     """)
     Long cantidadDashboardFiltrado(
-            @Param("medio") MedioIngresoManual medio,
-            @Param("fechaDesde") LocalDate fechaDesde,
-            @Param("fechaHasta") LocalDate fechaHasta,
-            @Param("q") String q
-    );
-
-    @Query("""
-        SELECT COALESCE(SUM(i.monto), 0)
-        FROM IngresoManualEntity i
-        WHERE i.fecha >= :fechaDesde
-          AND i.fecha <= :fechaHasta
-          AND (
-            :q = '' OR
-            lower(cast(i.categoria as string)) LIKE concat('%', lower(:q), '%') OR
-            lower(coalesce(i.descripcion, '')) LIKE concat('%', lower(:q), '%')
-          )
-    """)
-    BigDecimal totalDashboardFiltradoSinMedio(
+            @Param("categoria") CategoriaIngresoManual categoria,
             @Param("fechaDesde") LocalDate fechaDesde,
             @Param("fechaHasta") LocalDate fechaHasta,
             @Param("q") String q
@@ -112,4 +96,26 @@ public interface IngresoManualRepository extends JpaRepository<IngresoManualEnti
         ORDER BY COUNT(i) DESC
     """)
     List<MedioIngresoManual> medioMasUsado(@Param("anio") int anio, @Param("mes") int mes);
+
+    @Query("""
+    SELECT i
+    FROM IngresoManualEntity i
+    WHERE i.categoria = :categoria
+      AND (:medio IS NULL OR i.medioPago = :medio)
+      AND i.fecha >= :fechaDesde
+      AND i.fecha <= :fechaHasta
+      AND (
+        :q = '' OR
+        lower(cast(i.categoria as string)) LIKE concat('%', lower(:q), '%') OR
+        lower(coalesce(i.descripcion, '')) LIKE concat('%', lower(:q), '%')
+      )
+    ORDER BY i.fecha DESC
+""")
+    List<IngresoManualEntity> buscarDashboardPorCategoria(
+            @Param("categoria") CategoriaIngresoManual categoria,
+            @Param("medio") MedioIngresoManual medio,
+            @Param("fechaDesde") LocalDate fechaDesde,
+            @Param("fechaHasta") LocalDate fechaHasta,
+            @Param("q") String q
+    );
 }
