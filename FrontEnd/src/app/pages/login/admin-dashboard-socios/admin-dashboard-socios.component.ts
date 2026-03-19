@@ -15,6 +15,7 @@ import { Chart, DoughnutController, ArcElement, Tooltip, Legend } from 'chart.js
 
 import { DashboardService } from '../../../service/dashboard.service';
 import { DisciplinasService } from '../../../service/disciplinas.service';
+import { ExcelExportService } from '../../../service/excel-export.service';
 import { DashboardSociosResumen, Socio } from '../../../models/dashboard.model';
 import { DisciplinaDto } from '../../../features/disciplinas.models';
 
@@ -31,6 +32,7 @@ Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
   private dashboardService = inject(DashboardService);
   private disciplinasService = inject(DisciplinasService);
+  private excelExportService = inject(ExcelExportService);
   private cdr = inject(ChangeDetectorRef);
   private datePipe = inject(DatePipe);
 
@@ -149,6 +151,50 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
       q: '',
     };
     this.cargarDashboard();
+  }
+
+  exportarSocios(): void {
+    if (!this.socios || this.socios.length === 0) {
+      return;
+    }
+
+    const nombreDisciplina =
+      this.filtros.disciplinaId
+        ? this.disciplinas.find(d => d.id === Number(this.filtros.disciplinaId))?.nombre ?? 'disciplina'
+        : 'todos';
+
+    const estadoSocio =
+      this.filtros.activo === ''
+        ? 'todos'
+        : this.filtros.activo === 'true'
+          ? 'activos'
+          : 'inactivos';
+
+    const estadoPago =
+      this.filtros.estadoPago === ''
+        ? 'todos'
+        : this.filtros.estadoPago === 'AL_DIA'
+          ? 'al_dia'
+          : 'debe';
+
+    const busqueda = this.filtros.q?.trim()
+      ? this.filtros.q.trim().replace(/\s+/g, '_')
+      : 'sin_busqueda';
+
+    const data = this.socios.map((s, index) => ({
+      Nro: index + 1,
+      Apellido: s.apellido,
+      Nombre: s.nombre,
+      DNI: s.dni,
+      Disciplina: s.disciplinaNombre ?? '-',
+      'Estado socio': s.activo ? 'Activo' : 'Inactivo',
+      'Estado pago': s.estadoPago === 'AL_DIA' ? 'Al día' : 'Debe',
+      'Vigencia hasta': s.vigenciaHasta ?? '-',
+    }));
+
+    const fileName = `socios_${nombreDisciplina}_${estadoSocio}_${estadoPago}_${busqueda}`;
+
+    this.excelExportService.exportToExcel(data, fileName, 'Socios');
   }
 
   private renderCharts(): void {

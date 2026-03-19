@@ -26,27 +26,17 @@
       <div class="row g-3 align-items-end">
         <div class="col-md-4">
           <label class="form-label">Fecha desde</label>
-          <input
-            type="date"
-            class="form-control"
-            [(ngModel)]="fechaDesde"
-          />
+          <input type="date" class="form-control" [(ngModel)]="fechaDesde" />
         </div>
 
         <div class="col-md-4">
           <label class="form-label">Fecha hasta</label>
-          <input
-            type="date"
-            class="form-control"
-            [(ngModel)]="fechaHasta"
-          />
+          <input type="date" class="form-control" [(ngModel)]="fechaHasta" />
         </div>
 
         <div class="col-md-4">
           <div class="d-flex gap-2">
-            <button class="btn btn-dark w-100" (click)="filtrar()">
-              Filtrar
-            </button>
+            <button class="btn btn-dark w-100" (click)="filtrar()">Filtrar</button>
 
             <button class="btn btn-outline-secondary w-100" (click)="limpiarFiltros()">
               Limpiar
@@ -73,7 +63,7 @@
           <div class="card-body text-center">
             <h6 class="text-muted">Ingresos del período</h6>
             <h2 class="text-success">
-              {{ resumen.ingresosMes | currency:'ARS':'symbol':'1.2-2' }}
+              {{ resumen.ingresosMes | currency: 'ARS' : 'symbol' : '1.2-2' }}
             </h2>
           </div>
         </div>
@@ -84,7 +74,7 @@
           <div class="card-body text-center">
             <h6 class="text-muted">Gastos del período</h6>
             <h2 class="text-danger">
-              {{ resumen.gastosMes | currency:'ARS':'symbol':'1.2-2' }}
+              {{ resumen.gastosMes | currency: 'ARS' : 'symbol' : '1.2-2' }}
             </h2>
           </div>
         </div>
@@ -95,7 +85,7 @@
           <div class="card-body text-center">
             <h6 class="text-muted">Neto del período</h6>
             <h2 [class]="getNetoClass()">
-              {{ resumen.netoMes | currency:'ARS':'symbol':'1.2-2' }}
+              {{ resumen.netoMes | currency: 'ARS' : 'symbol' : '1.2-2' }}
             </h2>
           </div>
         </div>
@@ -113,14 +103,23 @@
 
     <div class="card shadow-sm">
       <div class="card-body">
-        <h5 class="mb-3">Resumen</h5>
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3"
+        >
+          <h5 class="mb-0">Resumen</h5>
+
+          <button class="btn btn-success" (click)="exportarBalance()" [disabled]="!resumen">
+            <i class="bi bi-file-earmark-excel me-2"></i>
+            Descargar Excel
+          </button>
+        </div>
 
         <div class="row g-3">
           <div class="col-md-4">
             <div class="resume-box border rounded-3 p-3 h-100">
               <div class="text-muted small mb-1">Ingresos</div>
               <div class="fw-semibold fs-5 text-success">
-                {{ resumen.ingresosMes | currency:'ARS':'symbol':'1.2-2' }}
+                {{ resumen.ingresosMes | currency: 'ARS' : 'symbol' : '1.2-2' }}
               </div>
             </div>
           </div>
@@ -129,7 +128,7 @@
             <div class="resume-box border rounded-3 p-3 h-100">
               <div class="text-muted small mb-1">Gastos</div>
               <div class="fw-semibold fs-5 text-danger">
-                {{ resumen.gastosMes | currency:'ARS':'symbol':'1.2-2' }}
+                {{ resumen.gastosMes | currency: 'ARS' : 'symbol' : '1.2-2' }}
               </div>
             </div>
           </div>
@@ -138,7 +137,7 @@
             <div class="resume-box border rounded-3 p-3 h-100">
               <div class="text-muted small mb-1">Resultado final</div>
               <div class="fw-semibold fs-5" [class]="getNetoClass()">
-                {{ resumen.netoMes | currency:'ARS':'symbol':'1.2-2' }}
+                {{ resumen.netoMes | currency: 'ARS' : 'symbol' : '1.2-2' }}
               </div>
             </div>
           </div>

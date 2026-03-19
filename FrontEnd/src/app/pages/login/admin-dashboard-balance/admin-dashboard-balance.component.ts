@@ -23,6 +23,7 @@ import {
 
 import { DashboardBalanceService } from '../../../service/dashboard-balance.service';
 import { DashboardBalanceResumen } from '../../../models/balance.model';
+import { ExcelExportService } from '../../../service/excel-export.service';
 
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -36,6 +37,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
 })
 export class AdminDashboardBalanceComponent implements OnInit, AfterViewInit {
   private dashboardBalanceService = inject(DashboardBalanceService);
+  private excelExportService = inject(ExcelExportService);
   private cdr = inject(ChangeDetectorRef);
   private datePipe = inject(DatePipe);
 
@@ -107,6 +109,32 @@ export class AdminDashboardBalanceComponent implements OnInit, AfterViewInit {
     this.fechaDesde = '';
     this.fechaHasta = '';
     this.cargarDashboard();
+  }
+
+  exportarBalance(): void {
+    if (!this.resumen) {
+      return;
+    }
+
+    const periodo = this.fechaDesde || this.fechaHasta
+      ? `${this.fechaDesde || 'Inicio'} a ${this.fechaHasta || 'Hoy'}`
+      : this.mesActual;
+
+    const fechaDesde = this.fechaDesde || 'sin_desde';
+    const fechaHasta = this.fechaHasta || 'sin_hasta';
+
+    const data = [
+      {
+        Período: periodo,
+        Ingresos: Number(this.resumen.ingresosMes ?? 0),
+        Gastos: Number(this.resumen.gastosMes ?? 0),
+        Neto: Number(this.resumen.netoMes ?? 0),
+      },
+    ];
+
+    const fileName = `balance_${fechaDesde}_${fechaHasta}`;
+
+    this.excelExportService.exportToExcel(data, fileName, 'Balance');
   }
 
   private actualizarPeriodoVisual(): void {

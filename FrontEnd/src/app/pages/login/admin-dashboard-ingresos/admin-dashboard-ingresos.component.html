@@ -40,7 +40,7 @@
         <div class="card card-dashboard shadow-sm h-100">
           <div class="card-body text-center">
             <h6 class="text-muted">Total de ingresos del mes</h6>
-            <h2>{{ resumen.totalMes | currency:'ARS':'symbol':'1.2-2' }}</h2>
+            <h2>{{ resumen.totalMes | currency: 'ARS' : 'symbol' : '1.2-2' }}</h2>
           </div>
         </div>
       </div>
@@ -200,7 +200,20 @@
 
     <div class="card shadow-sm">
       <div class="card-body">
-        <h5 class="mb-3">Listado de ingresos</h5>
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3"
+        >
+          <h5 class="mb-0">Listado de ingresos</h5>
+
+          <button
+            class="btn btn-success"
+            (click)="exportarIngresos()"
+            [disabled]="ingresos.length === 0"
+          >
+            <i class="bi bi-file-earmark-excel me-2"></i>
+            Descargar Excel
+          </button>
+        </div>
 
         <div class="table-responsive">
           <table class="table table-hover align-middle">
@@ -220,7 +233,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let i of ingresos">
-                <td>{{ i.fecha | date:'yyyy-MM-dd HH:mm' }}</td>
+                <td>{{ i.fecha | date: 'yyyy-MM-dd HH:mm' }}</td>
                 <td>{{ formatOrigen(i.origen) }}</td>
                 <td>{{ i.socioNombreCompleto || '-' }}</td>
                 <td>{{ i.disciplinaNombre || '-' }}</td>
@@ -228,7 +241,7 @@
                 <td>{{ i.concepto || '-' }}</td>
                 <td>{{ i.periodo || '-' }}</td>
                 <td>{{ formatMedio(i.medio) }}</td>
-                <td>{{ i.monto | currency:'ARS':'symbol':'1.2-2' }}</td>
+                <td>{{ i.monto | currency: 'ARS' : 'symbol' : '1.2-2' }}</td>
                 <td>{{ i.descripcion || '-' }}</td>
               </tr>
 

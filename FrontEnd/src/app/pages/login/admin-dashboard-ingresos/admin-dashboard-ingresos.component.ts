@@ -20,6 +20,7 @@ import {
 } from '../../../models/ingresos.model';
 import { IngresosManualesService } from '../../../service/ingresos-manuales.service';
 import { IngresoManualCreateRequest } from '../../../models/ingreso-manual.model';
+import { ExcelExportService } from '../../../service/excel-export.service';
 
 Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
@@ -34,6 +35,7 @@ Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked {
   private dashboardIngresosService = inject(DashboardIngresosService);
   private ingresosManualesService = inject(IngresosManualesService);
+  private excelExportService = inject(ExcelExportService);
   private cdr = inject(ChangeDetectorRef);
   private datePipe = inject(DatePipe);
 
@@ -210,6 +212,37 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
           this.cdr.detectChanges();
         },
       });
+  }
+
+  exportarIngresos(): void {
+    if (!this.ingresos || this.ingresos.length === 0) {
+      return;
+    }
+
+    const medio = this.filtros.medio || 'todos';
+    const fechaDesde = this.filtros.fechaDesde || 'sin_desde';
+    const fechaHasta = this.filtros.fechaHasta || 'sin_hasta';
+    const busqueda = this.filtros.q?.trim()
+      ? this.filtros.q.trim().replace(/\s+/g, '_')
+      : 'sin_busqueda';
+
+    const data = this.ingresos.map((i, index) => ({
+      Nro: index + 1,
+      Fecha: i.fecha,
+      Origen: this.formatOrigen(i.origen),
+      Socio: i.socioNombreCompleto || '-',
+      Disciplina: i.disciplinaNombre || '-',
+      Categoría: this.formatCategoria(i.categoria),
+      Concepto: i.concepto || '-',
+      Período: i.periodo || '-',
+      Medio: this.formatMedio(i.medio),
+      Monto: Number(i.monto ?? 0),
+      Descripción: i.descripcion || '-',
+    }));
+
+    const fileName = `ingresos_${medio}_${fechaDesde}_${fechaHasta}_${busqueda}`;
+
+    this.excelExportService.exportToExcel(data, fileName, 'Ingresos');
   }
 
   private renderChartMedios(): void {

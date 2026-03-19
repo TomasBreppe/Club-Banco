@@ -196,7 +196,18 @@
 
     <div class="card shadow-sm">
       <div class="card-body">
-        <h5 class="mb-3">Listado de gastos</h5>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+          <h5 class="mb-0">Listado de gastos</h5>
+
+          <button
+            class="btn btn-success"
+            (click)="exportarGastos()"
+            [disabled]="gastos.length === 0"
+          >
+            <i class="bi bi-file-earmark-excel me-2"></i>
+            Descargar Excel
+          </button>
+        </div>
 
         <div class="table-responsive">
           <table class="table table-hover align-middle">
@@ -217,9 +228,7 @@
                 <td>{{ g.concepto }}</td>
                 <td>{{ g.descripcion || '-' }}</td>
                 <td>{{ g.medioPago || '-' }}</td>
-                {{
-                  g.monto | currency: 'ARS' : 'symbol' : '1.2-2'
-                }}
+                <td>{{ g.monto | currency: 'ARS' : 'symbol' : '1.2-2' }}</td>
               </tr>
 
               <tr *ngIf="gastos.length === 0">

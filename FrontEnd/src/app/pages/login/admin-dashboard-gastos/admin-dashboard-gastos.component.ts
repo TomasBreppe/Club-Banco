@@ -22,6 +22,7 @@ import {
 } from 'chart.js';
 
 import { GastosService } from '../../../service/gastos.service';
+import { ExcelExportService } from '../../../service/excel-export.service';
 import {
   DashboardGastosResumen,
   Gasto,
@@ -41,6 +42,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
 })
 export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
   private gastosService = inject(GastosService);
+  private excelExportService = inject(ExcelExportService);
   private cdr = inject(ChangeDetectorRef);
   private datePipe = inject(DatePipe);
 
@@ -223,6 +225,36 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
       q: '',
     };
     this.cargarDashboard();
+  }
+
+  exportarGastos(): void {
+    if (!this.gastos || this.gastos.length === 0) {
+      return;
+    }
+
+    const categoria = this.filtros.categoria
+      ? this.filtros.categoria.toLowerCase()
+      : 'todas';
+
+    const fechaDesde = this.filtros.fechaDesde || 'sin_desde';
+    const fechaHasta = this.filtros.fechaHasta || 'sin_hasta';
+    const busqueda = this.filtros.q?.trim()
+      ? this.filtros.q.trim().replace(/\s+/g, '_')
+      : 'sin_busqueda';
+
+    const data = this.gastos.map((g, index) => ({
+      Nro: index + 1,
+      Fecha: g.fecha,
+      Categoría: this.formatCategoria(g.categoria),
+      Concepto: g.concepto || '-',
+      Descripción: g.descripcion || '-',
+      'Medio de pago': g.medioPago || '-',
+      Monto: Number(g.monto ?? 0),
+    }));
+
+    const fileName = `gastos_${categoria}_${fechaDesde}_${fechaHasta}_${busqueda}`;
+
+    this.excelExportService.exportToExcel(data, fileName, 'Gastos');
   }
 
   private renderChartCategorias(): void {

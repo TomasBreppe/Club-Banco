@@ -1,3 +1,4 @@
 export const environment = {
-  apiUrl: 'https://club-banco.onrender.com'
+  production: false,
+  apiUrl: 'http://localhost:8080'
 };
