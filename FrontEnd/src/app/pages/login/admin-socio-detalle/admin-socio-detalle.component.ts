@@ -417,8 +417,20 @@ export class AdminSocioDetalleComponent implements OnInit {
   }
 
   fmtFecha(iso: string): string {
-    const d = new Date(iso);
-    return d.toLocaleString();
+    if (!iso) return '-';
+
+    // 👇 FORZAMOS UTC agregando la Z si no viene
+    const fecha = iso.endsWith('Z') ? iso : iso + 'Z';
+
+    const d = new Date(fecha);
+
+    return d.toLocaleString('es-AR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   getPeriodosAdeudados(): string[] {
