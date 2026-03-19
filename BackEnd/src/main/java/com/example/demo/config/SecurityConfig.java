@@ -25,7 +25,12 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        // ✅ Swagger / OpenAPI
+                        // 🔥 MUY IMPORTANTE
+                        .requestMatchers("/ping/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/webhooks/**").permitAll()
+
+                        // swagger
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -34,9 +39,7 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
 
-                        .requestMatchers("/ping").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/webhooks/**").permitAll()
+                        // 🔥 CLAVE para preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
