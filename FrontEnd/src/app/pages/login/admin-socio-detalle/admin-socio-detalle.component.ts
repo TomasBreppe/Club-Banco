@@ -165,13 +165,7 @@ export class AdminSocioDetalleComponent implements OnInit {
     }
 
     if (this.pago.concepto === 'INSCRIPCION') {
-      this.pago.periodo = null;
-      this.pago.categoria = null;
-      this.pago.montoSocial = 0;
-      this.pago.montoDisciplina = 0;
-      this.pago.montoPreparacionFisica = 0;
-      this.pago.montoTotal = 0;
-      return;
+      return; // ❌ NO TOCAR NADA
     }
 
     this.pago.categoria = this.arancelSeleccionado.categoria;
@@ -235,10 +229,6 @@ export class AdminSocioDetalleComponent implements OnInit {
       this.pago.periodo = null;
       this.pago.arancelDisciplinaId = null;
       this.pago.categoria = null;
-      this.pago.montoSocial = 0;
-      this.pago.montoDisciplina = 0;
-      this.pago.montoPreparacionFisica = 0;
-      this.pago.montoTotal = 0;
       return;
     }
   }
