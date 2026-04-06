@@ -104,18 +104,17 @@ Frontend modular con Angular:
 ## 📸 Capturas
 
 ### 🔐 Login
-![Login](./assets/login.png)
+![Login](https://raw.githubusercontent.com/TomasBreppe/Club-Banco/main/FrontEnd/assets/login.png)
 
 ---
 
 ### 💰 Dashboard de ingresos
-![Ingresos](./assets/ingresos.png)
+![Ingresos](https://raw.githubusercontent.com/TomasBreppe/Club-Banco/main/FrontEnd/assets/ingresos.png)
 
 ---
 
 ### 👥 Gestión de socios
-![Socios](./assets/socios.png)
-
+![Socios](https://raw.githubusercontent.com/TomasBreppe/Club-Banco/main/FrontEnd/assets/socios.png)
 ---
 
 ## 🧠 Autor
