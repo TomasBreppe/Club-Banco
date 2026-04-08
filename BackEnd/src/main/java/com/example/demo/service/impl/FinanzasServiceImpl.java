@@ -1,6 +1,7 @@
 package com.example.demo.service.impl;
 
 import com.example.demo.config.BaseResponse;
+import com.example.demo.dto.arancel.ArancelCreateRequestDto;
 import com.example.demo.dto.arancel.ArancelDisciplinaDto;
 import com.example.demo.dto.deuda.DeudaItemDto;
 import com.example.demo.dto.deuda.DeudaResponseDto;
@@ -11,19 +12,34 @@ import com.example.demo.dto.socio.SocioResumenDto;
 import com.example.demo.entity.*;
 import com.example.demo.repository.ArancelDisciplinaRepository;
 import com.example.demo.repository.CuotaDisciplinaRepository;
+import com.example.demo.repository.DisciplinaRepository;
 import com.example.demo.repository.PagoRepository;
 import com.example.demo.repository.SocioRepository;
 import com.example.demo.repository.UsuarioRepository;
 import com.example.demo.service.FinanzasService;
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.Image;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.example.demo.dto.arancel.ArancelCreateRequestDto;
-import com.example.demo.repository.DisciplinaRepository;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
-import java.time.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -88,7 +104,6 @@ public class FinanzasServiceImpl implements FinanzasService {
             return new BaseResponse<>("No hay historial de aranceles para la categoría del socio", 400, null);
         }
 
-        // inscripción: si no existe pago INSCRIPCION, la debe
         boolean inscripcionPaga = Boolean.TRUE.equals(socio.getInscripcionPagada())
                 || pagoRepository.existsBySocio_IdAndConcepto(socioId, "INSCRIPCION");
 
@@ -101,7 +116,6 @@ public class FinanzasServiceImpl implements FinanzasService {
 
         List<DeudaItemDto> items = new ArrayList<>();
 
-        // si no pagó inscripción, agregarla como pendiente
         if (!inscripcionPaga) {
             items.add(DeudaItemDto.builder()
                     .periodo("INSCRIPCION")
@@ -182,10 +196,12 @@ public class FinanzasServiceImpl implements FinanzasService {
     public BaseResponse<PagoManualResponseDto> registrarPagoManual(PagoManualRequestDto dto) {
 
         SocioEntity socio = socioRepository.findById(dto.getSocioId()).orElse(null);
-        if (socio == null)
+        if (socio == null) {
             return new BaseResponse<>("Socio no encontrado", 404, null);
-        if (Boolean.FALSE.equals(socio.getActivo()))
+        }
+        if (Boolean.FALSE.equals(socio.getActivo())) {
             return new BaseResponse<>("El socio está inactivo", 400, null);
+        }
 
         String concepto = normalize(dto.getConcepto());
         String medioRaw = normalize(dto.getMedio());
@@ -201,18 +217,22 @@ public class FinanzasServiceImpl implements FinanzasService {
 
         if ("CUOTA_MENSUAL".equals(concepto)) {
             if (periodo == null || !periodo.matches("^\\d{4}-(0[1-9]|1[0-2])$")) {
-                YearMonth periodoYm = YearMonth.parse(periodo, YYYY_MM);
-
-                if (periodoYm.isBefore(PERIODO_INICIO_SISTEMA)) {
-                    return new BaseResponse<>(
-                            "Solo se permiten cuotas mensuales desde 2026-04. Las anteriores deben registrarse como ingreso manual.",
-                            400,
-                            null);
-                }
+                return new BaseResponse<>("Periodo inválido. Formato esperado: YYYY-MM", 400, null);
             }
+
+            YearMonth periodoYm = YearMonth.parse(periodo, YYYY_MM);
+
+            if (periodoYm.isBefore(PERIODO_INICIO_SISTEMA)) {
+                return new BaseResponse<>(
+                        "Solo se permiten cuotas mensuales desde 2026-04. Las anteriores deben registrarse como ingreso manual.",
+                        400,
+                        null);
+            }
+
             if (pagoRepository.existsBySocio_IdAndConceptoAndPeriodo(socio.getId(), "CUOTA_MENSUAL", periodo)) {
                 return new BaseResponse<>("La cuota de ese periodo ya está paga", 400, null);
             }
+
         } else if ("INSCRIPCION".equals(concepto)) {
             boolean yaPagaInscripcion = Boolean.TRUE.equals(socio.getInscripcionPagada())
                     || pagoRepository.existsBySocio_IdAndConcepto(socio.getId(), "INSCRIPCION");
@@ -256,7 +276,6 @@ public class FinanzasServiceImpl implements FinanzasService {
             categoria = arancel.getCategoria();
 
         } else {
-            // INSCRIPCION: se carga manualmente, no usa arancel
             montoTotal = safe(dto.getMontoTotal());
 
             if (montoTotal.compareTo(BigDecimal.ZERO) <= 0) {
@@ -331,8 +350,9 @@ public class FinanzasServiceImpl implements FinanzasService {
     public BaseResponse<List<PagoDto>> historialPagosSocio(Long socioId, LocalDate desde, LocalDate hasta) {
 
         SocioEntity socio = socioRepository.findById(socioId).orElse(null);
-        if (socio == null)
+        if (socio == null) {
             return new BaseResponse<>("Socio no encontrado", 404, null);
+        }
 
         var pagos = buscarPagosPorRango(socioId, desde, hasta);
         var data = pagos.stream().map(this::toPagoDto).toList();
@@ -344,8 +364,9 @@ public class FinanzasServiceImpl implements FinanzasService {
     public BaseResponse<List<PagoDto>> misPagos(String email, LocalDate desde, LocalDate hasta) {
 
         UsuarioEntity user = usuarioRepository.findByEmailIgnoreCase(email).orElse(null);
-        if (user == null)
+        if (user == null) {
             return new BaseResponse<>("Usuario no encontrado", 404, null);
+        }
 
         if (user.getSocios() == null || user.getSocios().isEmpty()) {
             return new BaseResponse<>("El usuario no tiene socio asociado", 400, null);
@@ -367,8 +388,9 @@ public class FinanzasServiceImpl implements FinanzasService {
     public BaseResponse<SocioResumenDto> resumenSocio(Long socioId, LocalDate desde, LocalDate hasta, Integer limit) {
 
         SocioEntity socio = socioRepository.findById(socioId).orElse(null);
-        if (socio == null)
+        if (socio == null) {
             return BaseResponse.bad("Socio no encontrado");
+        }
 
         var deudaResp = getDeudaBySocioId(socioId);
         var deuda = deudaResp.getData();
@@ -378,8 +400,9 @@ public class FinanzasServiceImpl implements FinanzasService {
         List<PagoEntity> pagos;
         if (desde != null || hasta != null) {
             pagos = buscarPagosPorRango(socioId, desde, hasta);
-            if (pagos.size() > lim)
+            if (pagos.size() > lim) {
                 pagos = pagos.subList(0, lim);
+            }
         } else {
             pagos = pagoRepository.findBySocio_IdOrderByFechaPagoDesc(
                     socioId,
@@ -484,6 +507,113 @@ public class FinanzasServiceImpl implements FinanzasService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public byte[] generarComprobantePdf(Long pagoId) {
+        PagoEntity pago = pagoRepository.findById(pagoId)
+                .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado"));
+
+        SocioEntity socio = pago.getSocio();
+        if (socio == null) {
+            throw new IllegalArgumentException("El pago no tiene socio asociado");
+        }
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        try {
+            Document document = new Document(PageSize.A6, 24, 24, 24, 24);
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            try {
+                ClassPathResource resource = new ClassPathResource("static/img/logo-club-banco.png");
+                InputStream is = resource.getInputStream();
+                byte[] bytes = is.readAllBytes();
+                Image logo = Image.getInstance(bytes);
+                logo.scaleToFit(60, 60);
+                logo.setAlignment(Image.ALIGN_CENTER);
+                document.add(logo);
+            } catch (Exception e) {
+                // sigue sin romper si no encuentra logo
+            }
+
+            Font titleFont = new Font(Font.HELVETICA, 14, Font.BOLD);
+            Font normalFont = new Font(Font.HELVETICA, 10, Font.NORMAL);
+            Font boldFont = new Font(Font.HELVETICA, 10, Font.BOLD);
+
+            Paragraph titulo = new Paragraph("CLUB BANCO", titleFont);
+            titulo.setAlignment(Element.ALIGN_CENTER);
+            titulo.setSpacingAfter(8f);
+            document.add(titulo);
+
+            Paragraph subtitulo = new Paragraph("COMPROBANTE DE PAGO", boldFont);
+            subtitulo.setAlignment(Element.ALIGN_CENTER);
+            subtitulo.setSpacingAfter(12f);
+            document.add(subtitulo);
+
+            DateTimeFormatter fechaHoraFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            String fechaHora = pago.getFechaPago() != null ? pago.getFechaPago().format(fechaHoraFmt) : "-";
+
+            PdfPTable table = new PdfPTable(2);
+            table.setWidthPercentage(100);
+            table.setSpacingBefore(5f);
+            table.setSpacingAfter(10f);
+            table.setWidths(new float[] { 40f, 60f });
+
+            addRow(table, "N° comprobante", String.format("%06d", pago.getId()), boldFont, normalFont);
+            addRow(table, "Fecha", fechaHora, boldFont, normalFont);
+            addRow(table, "Socio", socio.getApellido() + ", " + socio.getNombre(), boldFont, normalFont);
+            addRow(table, "DNI", socio.getDni(), boldFont, normalFont);
+            addRow(table, "Disciplina", pago.getDisciplina() != null ? pago.getDisciplina().getNombre() : "-", boldFont,
+                    normalFont);
+            addRow(table, "Categoría", pago.getCategoria() != null ? pago.getCategoria() : "-", boldFont, normalFont);
+            addRow(table, "Concepto", pago.getConcepto() != null ? pago.getConcepto() : "-", boldFont, normalFont);
+            addRow(table, "Período", pago.getPeriodo() != null ? pago.getPeriodo() : "-", boldFont, normalFont);
+            addRow(table, "Medio", pago.getMedio() != null ? pago.getMedio().name() : "-", boldFont, normalFont);
+
+            document.add(table);
+
+            Paragraph detalleTitulo = new Paragraph("Detalle", boldFont);
+            detalleTitulo.setSpacingAfter(6f);
+            document.add(detalleTitulo);
+
+            PdfPTable detalle = new PdfPTable(2);
+            detalle.setWidthPercentage(100);
+            detalle.setWidths(new float[] { 65f, 35f });
+            detalle.setSpacingAfter(10f);
+
+            addRow(detalle, "Cuota social", "$ " + safe(pago.getMontoSocial()), normalFont, normalFont);
+            addRow(detalle, "Deportivo", "$ " + safe(pago.getMontoDisciplina()), normalFont, normalFont);
+            addRow(detalle, "Prep. física", "$ " + safe(pago.getMontoPreparacionFisica()), normalFont, normalFont);
+
+            document.add(detalle);
+
+            Paragraph total = new Paragraph(
+                    "TOTAL: $ " + safe(pago.getMontoTotal()),
+                    new Font(Font.HELVETICA, 12, Font.BOLD));
+            total.setAlignment(Element.ALIGN_RIGHT);
+            total.setSpacingAfter(10f);
+            document.add(total);
+
+            if (pago.getObservacion() != null && !pago.getObservacion().isBlank()) {
+                Paragraph obs = new Paragraph("Observación: " + pago.getObservacion(), normalFont);
+                obs.setSpacingBefore(6f);
+                document.add(obs);
+            }
+
+            Paragraph pie = new Paragraph("Comprobante válido como constancia de pago.", normalFont);
+            pie.setAlignment(Element.ALIGN_CENTER);
+            pie.setSpacingBefore(16f);
+            document.add(pie);
+
+            document.close();
+            return out.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudo generar el comprobante PDF", e);
+        }
+    }
+
+    @Override
     @Transactional
     public BaseResponse<ArancelDisciplinaDto> cambiarEstadoArancel(Long arancelId, boolean activa) {
         ArancelDisciplinaEntity entity = arancelDisciplinaRepository.findById(arancelId).orElse(null);
@@ -564,13 +694,27 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .build();
     }
 
+    private void addRow(PdfPTable table, String label, String value, Font labelFont, Font valueFont) {
+        PdfPCell c1 = new PdfPCell(new Phrase(label, labelFont));
+        c1.setBorder(Rectangle.NO_BORDER);
+        c1.setPadding(4f);
+
+        PdfPCell c2 = new PdfPCell(new Phrase(value, valueFont));
+        c2.setBorder(Rectangle.NO_BORDER);
+        c2.setPadding(4f);
+
+        table.addCell(c1);
+        table.addCell(c2);
+    }
+
     private BigDecimal safe(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
     }
 
     private BigDecimal calcularMontoArancel(ArancelDisciplinaEntity a) {
-        if (a == null)
+        if (a == null) {
             return BigDecimal.ZERO;
+        }
 
         return safe(a.getMontoSocial())
                 .add(safe(a.getMontoDeportivo()))
@@ -587,26 +731,7 @@ public class FinanzasServiceImpl implements FinanzasService {
         return out;
     }
 
-    private static LocalDate maxDate(LocalDate a, LocalDate b) {
-        return a.isAfter(b) ? a : b;
-    }
-
     private static String normalize(String s) {
         return s == null ? null : s.trim().toUpperCase(Locale.ROOT);
-    }
-
-    private static DeudaResponseDto baseDeudaResponse(SocioEntity socio, BigDecimal montoMensual,
-            List<DeudaItemDto> items) {
-        return DeudaResponseDto.builder()
-                .socioId(socio.getId())
-                .dni(socio.getDni())
-                .nombreCompleto(socio.getNombre() + " " + socio.getApellido())
-                .disciplina(socio.getDisciplina().getNombre())
-                .vigenciaHasta(socio.getVigenciaHasta())
-                .montoMensual(montoMensual)
-                .mesesAdeudados(0)
-                .totalAdeudado(BigDecimal.ZERO)
-                .items(items)
-                .build();
     }
 }

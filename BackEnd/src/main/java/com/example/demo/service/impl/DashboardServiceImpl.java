@@ -52,11 +52,11 @@ public class DashboardServiceImpl implements DashboardService {
                                                 return dto;
                                         }
 
-                                        if (s.getVigenciaHasta() != null && !s.getVigenciaHasta().isBefore(hoy)) {
-                                                dto.setEstadoPago("AL_DIA");
-                                        } else {
-                                                dto.setEstadoPago("DEBE");
-                                        }
+                                        boolean debeInscripcion = Boolean.FALSE.equals(s.getInscripcionPagada());
+                                        boolean debeCuota = s.getVigenciaHasta() == null
+                                                        || s.getVigenciaHasta().isBefore(hoy);
+
+                                        dto.setEstadoPago((debeInscripcion || debeCuota) ? "DEBE" : "AL_DIA");
 
                                         return dto;
                                 })

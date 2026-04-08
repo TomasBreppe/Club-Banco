@@ -14,6 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -33,7 +36,8 @@ public class FinanzasController {
 
     // SOCIO/ADMIN: deuda del socio logueado
     // (Acá depende de cómo armes tu JWT: si el token tiene socioId, usalo.
-    //  Si hoy no lo tenés, por ahora podés omitir este endpoint y quedarte con el de admin.)
+    // Si hoy no lo tenés, por ahora podés omitir este endpoint y quedarte con el de
+    // admin.)
     @GetMapping("/me/deuda")
     public BaseResponse<DeudaResponseDto> miDeuda(Authentication auth) {
         // ✅ TODO: obtener socioId desde el usuario logueado.
@@ -53,8 +57,7 @@ public class FinanzasController {
     public BaseResponse<List<PagoDto>> pagosSocio(
             @PathVariable Long socioId,
             @RequestParam(required = false) LocalDate desde,
-            @RequestParam(required = false) LocalDate hasta
-    ) {
+            @RequestParam(required = false) LocalDate hasta) {
         return finanzasService.historialPagosSocio(socioId, desde, hasta);
     }
 
@@ -62,8 +65,7 @@ public class FinanzasController {
     public BaseResponse<List<PagoDto>> misPagos(
             Authentication auth,
             @RequestParam(required = false) LocalDate desde,
-            @RequestParam(required = false) LocalDate hasta
-    ) {
+            @RequestParam(required = false) LocalDate hasta) {
         return finanzasService.misPagos(auth.getName(), desde, hasta);
     }
 
@@ -72,8 +74,7 @@ public class FinanzasController {
             @PathVariable Long socioId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
-            @RequestParam(required = false) Integer limit
-    ) {
+            @RequestParam(required = false) Integer limit) {
         return finanzasService.resumenSocio(socioId, desde, hasta, limit);
     }
 
@@ -95,8 +96,17 @@ public class FinanzasController {
     @PatchMapping("/admin/aranceles/{arancelId}/estado")
     public BaseResponse<ArancelDisciplinaDto> cambiarEstadoArancel(
             @PathVariable Long arancelId,
-            @RequestParam boolean activa
-    ) {
+            @RequestParam boolean activa) {
         return finanzasService.cambiarEstadoArancel(arancelId, activa);
+    }
+
+    @GetMapping("/admin/pagos/{pagoId}/comprobante")
+    public ResponseEntity<byte[]> descargarComprobante(@PathVariable Long pagoId) {
+        byte[] pdf = finanzasService.generarComprobantePdf(pagoId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=comprobante_" + pagoId + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 }

@@ -25,4 +25,5 @@ public interface FinanzasService {
     BaseResponse<List<ArancelDisciplinaDto>> listarArancelesPorDisciplina(Long disciplinaId);
     BaseResponse<ArancelDisciplinaDto> crearArancel(ArancelCreateRequestDto dto);
     BaseResponse<ArancelDisciplinaDto> cambiarEstadoArancel(Long arancelId, boolean activa);
+    byte[] generarComprobantePdf(Long pagoId);
 }

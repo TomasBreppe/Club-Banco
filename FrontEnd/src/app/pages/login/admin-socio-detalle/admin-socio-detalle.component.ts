@@ -23,7 +23,7 @@ export class AdminSocioDetalleComponent implements OnInit {
   loading = false;
   error: string | null = null;
   data: SocioResumenDto | null = null;
-
+  ultimoPagoRegistradoId: number | null = null;
   pagoError: string | null = null;
   pagoOk: string | null = null;
 
@@ -372,6 +372,7 @@ export class AdminSocioDetalleComponent implements OnInit {
       )
       .subscribe({
         next: (res: any) => {
+          console.log('RESPUESTA REGISTRAR PAGO:', res);
           if (res.status !== 200 && res.status !== 201) {
             this.pagoError = res.mensaje || 'No se pudo registrar el pago';
             this.cdr.detectChanges();
@@ -379,6 +380,7 @@ export class AdminSocioDetalleComponent implements OnInit {
           }
 
           this.pagoOk = 'Pago registrado correctamente';
+          this.ultimoPagoRegistradoId = res?.data?.pagoId ?? null;
 
           const socioId = this.pago.socioId;
           this.cargar(socioId);
@@ -461,5 +463,48 @@ export class AdminSocioDetalleComponent implements OnInit {
     if (!anio || !mes || mes < 1 || mes > 12) return periodo;
 
     return `${nombresMeses[mes - 1]} ${anio}`;
+  }
+
+  descargarComprobante(): void {
+    if (!this.ultimoPagoRegistradoId) return;
+
+    this.pagosApi.descargarComprobante(this.ultimoPagoRegistradoId).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `comprobante_${this.ultimoPagoRegistradoId}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.pagoError = 'No se pudo descargar el comprobante';
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  tieneDeuda(): boolean {
+    const items = this.data?.deuda?.items ?? [];
+    return items.some((i) => !i.pagado);
+  }
+
+  descargarComprobantePorPago(pagoId: number): void {
+    if (!pagoId) return;
+
+    this.pagosApi.descargarComprobante(pagoId).subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `comprobante_${pagoId}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.pagoError = 'No se pudo descargar el comprobante';
+        this.cdr.detectChanges();
+      },
+    });
   }
 }

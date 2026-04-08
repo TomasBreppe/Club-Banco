@@ -85,11 +85,10 @@ public class SocioServiceImpl implements SocioService {
         LocalDate hoy = LocalDate.now();
 
         List<SocioDto> result = socioRepository.search(
-                        disciplinaId,
-                        categoriaNorm,
-                        qLower,
-                        qRaw
-                ).stream()
+                disciplinaId,
+                categoriaNorm,
+                qLower,
+                qRaw).stream()
                 .map(s -> {
                     SocioDto dto = SocioMapper.toDto(s);
 
@@ -98,11 +97,10 @@ public class SocioServiceImpl implements SocioService {
                         return dto;
                     }
 
-                    if (s.getVigenciaHasta() != null && !s.getVigenciaHasta().isBefore(hoy)) {
-                        dto.setEstadoPago("AL_DIA");
-                    } else {
-                        dto.setEstadoPago("DEBE");
-                    }
+                    boolean debeInscripcion = Boolean.FALSE.equals(s.getInscripcionPagada());
+                    boolean debeCuota = s.getVigenciaHasta() == null || s.getVigenciaHasta().isBefore(hoy);
+
+                    dto.setEstadoPago((debeInscripcion || debeCuota) ? "DEBE" : "AL_DIA");
 
                     return dto;
                 })
@@ -169,7 +167,6 @@ public class SocioServiceImpl implements SocioService {
 
         return BaseResponse.ok(
                 activo ? "Socio reactivado" : "Socio dado de baja",
-                SocioMapper.toDto(saved)
-        );
+                SocioMapper.toDto(saved));
     }
 }

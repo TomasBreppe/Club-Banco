@@ -22,4 +22,9 @@ export class PagosService {
   getArancelesPorDisciplina(disciplinaId: number) {
     return this.http.get<any>(`${this.base}/api/admin/disciplinas/${disciplinaId}/aranceles`);
   }
+  descargarComprobante(pagoId: number) {
+    return this.http.get(`${this.base}/api/admin/pagos/${pagoId}/comprobante`, {
+      responseType: 'blob',
+    });
+  }
 }
