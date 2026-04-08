@@ -28,10 +28,10 @@ public class AdminSocioController {
     @GetMapping
     public BaseResponse<List<SocioDto>> listar(
             @RequestParam(required = false) Long disciplinaId,
+            @RequestParam(required = false) String categoria,
             @RequestParam(required = false) String estadoPago,
-            @RequestParam(required = false) String q
-    ) {
-        return socioService.listar(disciplinaId, estadoPago, q);
+            @RequestParam(required = false) String q) {
+        return socioService.listar(disciplinaId, categoria, estadoPago, q);
     }
 
     @GetMapping("/{id}/resumen")
@@ -42,8 +42,7 @@ public class AdminSocioController {
     @PatchMapping("/{id}/activo")
     public BaseResponse<SocioDto> cambiarActivo(
             @PathVariable Long id,
-            @RequestParam Boolean valor
-    ) {
+            @RequestParam Boolean valor) {
         return socioService.cambiarActivo(id, valor);
     }
 }

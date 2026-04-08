@@ -18,11 +18,10 @@ public class AdminDashboardController {
     public ResponseEntity<BaseResponse<DashboardSociosResponseDto>> obtenerDashboardSocios(
             @RequestParam(required = false) Long disciplinaId,
             @RequestParam(required = false) Boolean activo,
+            @RequestParam(required = false) String categoria,
             @RequestParam(required = false) String estadoPago,
-            @RequestParam(required = false) String q
-    ) {
+            @RequestParam(required = false) String q) {
         return ResponseEntity.ok(
-                dashboardService.obtenerDashboardSocios(disciplinaId, activo, estadoPago, q)
-        );
+                dashboardService.obtenerDashboardSocios(disciplinaId, activo, categoria, estadoPago, q));
     }
 }

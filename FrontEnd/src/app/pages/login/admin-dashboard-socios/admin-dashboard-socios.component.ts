@@ -55,13 +55,22 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
   filtros = {
     disciplinaId: '',
     activo: '',
+    categoria: '',
     estadoPago: '',
     q: '',
   };
 
+  categoriasFiltradas: string[] = [];
+  arancelesPorDisciplina: Record<number, string[]> = {
+    1: ['FEDERADO', 'INICIAL 1', 'INICIAL 2', 'TRES DISCIPLINAS'],
+    2: ['MINI/U13'],
+    3: [],
+    4: ['INFANTILES', 'INFERIORES', 'PRIMERA'],
+    5: [],
+    6: [],
+  };
   ngOnInit(): void {
-    this.mesActual =
-      this.datePipe.transform(new Date(), "MMMM 'de' yyyy", 'es-AR') ?? '';
+    this.mesActual = this.datePipe.transform(new Date(), "MMMM 'de' yyyy", 'es-AR') ?? '';
     this.cargarDisciplinas();
     this.cargarDashboard();
   }
@@ -114,6 +123,7 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
       .obtenerDashboardSocios({
         disciplinaId,
         activo,
+        categoria: this.filtros.categoria || null,
         estadoPago,
         q: this.filtros.q || null,
       })
@@ -147,6 +157,7 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
     this.filtros = {
       disciplinaId: '',
       activo: '',
+      categoria: '',
       estadoPago: '',
       q: '',
     };
@@ -158,10 +169,10 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
       return;
     }
 
-    const nombreDisciplina =
-      this.filtros.disciplinaId
-        ? this.disciplinas.find(d => d.id === Number(this.filtros.disciplinaId))?.nombre ?? 'disciplina'
-        : 'todos';
+    const nombreDisciplina = this.filtros.disciplinaId
+      ? (this.disciplinas.find((d) => d.id === Number(this.filtros.disciplinaId))?.nombre ??
+        'disciplina')
+      : 'todos';
 
     const estadoSocio =
       this.filtros.activo === ''
@@ -187,6 +198,7 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
       Nombre: s.nombre,
       DNI: s.dni,
       Disciplina: s.disciplinaNombre ?? '-',
+       'Categoría': s.categoriaArancel ?? '-',
       'Estado socio': s.activo ? 'Activo' : 'Inactivo',
       'Estado pago': s.estadoPago === 'AL_DIA' ? 'Al día' : 'Debe',
       'Vigencia hasta': s.vigenciaHasta ?? '-',
@@ -260,5 +272,21 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
 
   getEstadoActivoClass(activo: boolean): string {
     return activo ? 'badge bg-primary' : 'badge bg-secondary';
+  }
+
+  actualizarCategorias(): void {
+    const disciplinaId =
+      this.filtros.disciplinaId === '' ? null : Number(this.filtros.disciplinaId);
+
+    if (!disciplinaId) {
+      this.categoriasFiltradas = [];
+      this.filtros.categoria = '';
+      return;
+    }
+
+    this.categoriasFiltradas = this.arancelesPorDisciplina[disciplinaId] ?? [];
+    if (!this.categoriasFiltradas.includes(this.filtros.categoria)) {
+      this.filtros.categoria = '';
+    }
   }
 }

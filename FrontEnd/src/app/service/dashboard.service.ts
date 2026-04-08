@@ -14,6 +14,8 @@ export class DashboardService {
   obtenerDashboardSocios(filtros?: {
     disciplinaId?: number | null;
     activo?: boolean | null;
+    categoria?: string | null;
+
     estadoPago?: string | null;
     q?: string | null;
   }): Observable<BaseResponse<DashboardSociosResponse>> {
@@ -27,6 +29,10 @@ export class DashboardService {
       params = params.set('activo', filtros.activo);
     }
 
+    if (filtros?.categoria && filtros.categoria.trim() !== '') {
+      params = params.set('categoria', filtros.categoria.trim());
+    }
+
     if (filtros?.estadoPago) {
       params = params.set('estadoPago', filtros.estadoPago);
     }
@@ -35,9 +41,8 @@ export class DashboardService {
       params = params.set('q', filtros.q.trim());
     }
 
-    return this.http.get<BaseResponse<DashboardSociosResponse>>(
-      `${this.apiUrl}/socios`,
-      { params }
-    );
+    return this.http.get<BaseResponse<DashboardSociosResponse>>(`${this.apiUrl}/socios`, {
+      params,
+    });
   }
 }

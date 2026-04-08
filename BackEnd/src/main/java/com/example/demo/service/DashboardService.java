@@ -9,7 +9,7 @@ public interface DashboardService {
     BaseResponse<DashboardSociosResponseDto> obtenerDashboardSocios(
             Long disciplinaId,
             Boolean activo,
+            String categoria,
             String estadoPago,
-            String q
-    );
+            String q);
 }

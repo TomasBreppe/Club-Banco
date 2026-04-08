@@ -14,27 +14,24 @@ public interface SocioRepository extends JpaRepository<SocioEntity, Long> {
     Optional<SocioEntity> findByDni(String dni);
 
     @Query("""
-        SELECT s FROM SocioEntity s
+        SELECT s
+        FROM SocioEntity s
+        LEFT JOIN s.arancelDisciplina ad
         WHERE (:disciplinaId IS NULL OR s.disciplina.id = :disciplinaId)
+          AND (:categoria IS NULL OR ad.categoria = cast(:categoria as string))
           AND (
             :qLower IS NULL OR
             lower(s.apellido) LIKE concat('%', cast(:qLower as string), '%') OR
             lower(s.nombre) LIKE concat('%', cast(:qLower as string), '%') OR
             s.dni LIKE concat('%', cast(:qRaw as string), '%')
           )
-          AND (
-            :estadoPago IS NULL OR
-            (:estadoPago = 'AL_DIA' AND s.vigenciaHasta IS NOT NULL AND s.vigenciaHasta >= :hoy) OR
-            (:estadoPago = 'DEBE' AND (s.vigenciaHasta IS NULL OR s.vigenciaHasta < :hoy))
-          )
-              ORDER BY s.id DESC
+        ORDER BY s.id DESC
     """)
     List<SocioEntity> search(
             @Param("disciplinaId") Long disciplinaId,
-            @Param("estadoPago") String estadoPago,
+            @Param("categoria") String categoria,
             @Param("qLower") String qLower,
-            @Param("qRaw") String qRaw,
-            @Param("hoy") LocalDate hoy
+            @Param("qRaw") String qRaw
     );
 
     long countByDisciplinaId(Long disciplinaId);
@@ -70,14 +67,12 @@ public interface SocioRepository extends JpaRepository<SocioEntity, Long> {
     long countInactivos();
 
     @Query("""
-        SELECT s FROM SocioEntity s
+        SELECT s
+        FROM SocioEntity s
+        LEFT JOIN s.arancelDisciplina ad
         WHERE (:disciplinaId IS NULL OR s.disciplina.id = :disciplinaId)
           AND (:activo IS NULL OR s.activo = :activo)
-          AND (
-            :estadoPago IS NULL OR
-            (:estadoPago = 'AL_DIA' AND s.vigenciaHasta IS NOT NULL AND s.vigenciaHasta >= :hoy) OR
-            (:estadoPago = 'DEBE' AND (s.vigenciaHasta IS NULL OR s.vigenciaHasta < :hoy))
-          )
+          AND (:categoria IS NULL OR ad.categoria = cast(:categoria as string))
           AND (
             :qLower IS NULL OR
             lower(s.apellido) LIKE concat('%', cast(:qLower as string), '%') OR
@@ -89,9 +84,8 @@ public interface SocioRepository extends JpaRepository<SocioEntity, Long> {
     List<SocioEntity> searchDashboard(
             @Param("disciplinaId") Long disciplinaId,
             @Param("activo") Boolean activo,
-            @Param("estadoPago") String estadoPago,
+            @Param("categoria") String categoria,
             @Param("qLower") String qLower,
-            @Param("qRaw") String qRaw,
-            @Param("hoy") LocalDate hoy
+            @Param("qRaw") String qRaw
     );
 }

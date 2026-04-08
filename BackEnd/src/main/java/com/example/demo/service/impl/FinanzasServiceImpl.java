@@ -39,6 +39,7 @@ public class FinanzasServiceImpl implements FinanzasService {
     private final ArancelDisciplinaRepository arancelDisciplinaRepository;
     private final DisciplinaRepository disciplinaRepository;
 
+    private static final YearMonth PERIODO_INICIO_SISTEMA = YearMonth.of(2026, 4);
     private static final DateTimeFormatter YYYY_MM = DateTimeFormatter.ofPattern("yyyy-MM");
 
     @Override
@@ -70,8 +71,7 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .findTopByDisciplina_IdAndCategoriaIgnoreCaseAndVigenteDesdeLessThanEqualOrderByVigenteDesdeDesc(
                         disciplinaId,
                         categoria,
-                        LocalDate.now()
-                )
+                        LocalDate.now())
                 .orElse(null);
 
         if (arancelActual == null) {
@@ -81,8 +81,7 @@ public class FinanzasServiceImpl implements FinanzasService {
         ArancelDisciplinaEntity primerArancel = arancelDisciplinaRepository
                 .findTopByDisciplina_IdAndCategoriaIgnoreCaseOrderByVigenteDesdeAsc(
                         disciplinaId,
-                        categoria
-                )
+                        categoria)
                 .orElse(null);
 
         if (primerArancel == null) {
@@ -93,16 +92,12 @@ public class FinanzasServiceImpl implements FinanzasService {
         boolean inscripcionPaga = Boolean.TRUE.equals(socio.getInscripcionPagada())
                 || pagoRepository.existsBySocio_IdAndConcepto(socioId, "INSCRIPCION");
 
-        YearMonth start = YearMonth.from(maxDate(
-                primerArancel.getVigenteDesde(),
-                socio.getCreatedAt().toLocalDate()
-        ));
+        YearMonth start = Collections.max(List.of(
+                PERIODO_INICIO_SISTEMA,
+                YearMonth.from(primerArancel.getVigenteDesde()),
+                YearMonth.from(socio.getCreatedAt().toLocalDate())));
 
         YearMonth end = YearMonth.from(LocalDate.now());
-        if (socio.getVigenciaHasta() != null) {
-            YearMonth hasta = YearMonth.from(socio.getVigenciaHasta());
-            if (hasta.isBefore(end)) end = hasta;
-        }
 
         List<DeudaItemDto> items = new ArrayList<>();
 
@@ -123,8 +118,7 @@ public class FinanzasServiceImpl implements FinanzasService {
             List<PagoEntity> pagos = pagoRepository.findBySocio_IdAndConceptoAndPeriodoIn(
                     socioId,
                     "CUOTA_MENSUAL",
-                    periodos
-            );
+                    periodos);
 
             Set<String> periodosPagos = pagos.stream()
                     .map(PagoEntity::getPeriodo)
@@ -140,8 +134,7 @@ public class FinanzasServiceImpl implements FinanzasService {
                                 .findTopByDisciplina_IdAndCategoriaIgnoreCaseAndVigenteDesdeLessThanEqualOrderByVigenteDesdeDesc(
                                         disciplinaId,
                                         categoria,
-                                        fechaPeriodo
-                                )
+                                        fechaPeriodo)
                                 .orElse(arancelActual);
 
                         BigDecimal montoPeriodo = calcularMontoArancel(arancelPeriodo);
@@ -189,8 +182,10 @@ public class FinanzasServiceImpl implements FinanzasService {
     public BaseResponse<PagoManualResponseDto> registrarPagoManual(PagoManualRequestDto dto) {
 
         SocioEntity socio = socioRepository.findById(dto.getSocioId()).orElse(null);
-        if (socio == null) return new BaseResponse<>("Socio no encontrado", 404, null);
-        if (Boolean.FALSE.equals(socio.getActivo())) return new BaseResponse<>("El socio está inactivo", 400, null);
+        if (socio == null)
+            return new BaseResponse<>("Socio no encontrado", 404, null);
+        if (Boolean.FALSE.equals(socio.getActivo()))
+            return new BaseResponse<>("El socio está inactivo", 400, null);
 
         String concepto = normalize(dto.getConcepto());
         String medioRaw = normalize(dto.getMedio());
@@ -206,7 +201,14 @@ public class FinanzasServiceImpl implements FinanzasService {
 
         if ("CUOTA_MENSUAL".equals(concepto)) {
             if (periodo == null || !periodo.matches("^\\d{4}-(0[1-9]|1[0-2])$")) {
-                return new BaseResponse<>("Periodo inválido. Formato esperado: YYYY-MM", 400, null);
+                YearMonth periodoYm = YearMonth.parse(periodo, YYYY_MM);
+
+                if (periodoYm.isBefore(PERIODO_INICIO_SISTEMA)) {
+                    return new BaseResponse<>(
+                            "Solo se permiten cuotas mensuales desde 2026-04. Las anteriores deben registrarse como ingreso manual.",
+                            400,
+                            null);
+                }
             }
             if (pagoRepository.existsBySocio_IdAndConceptoAndPeriodo(socio.getId(), "CUOTA_MENSUAL", periodo)) {
                 return new BaseResponse<>("La cuota de ese periodo ya está paga", 400, null);
@@ -329,7 +331,8 @@ public class FinanzasServiceImpl implements FinanzasService {
     public BaseResponse<List<PagoDto>> historialPagosSocio(Long socioId, LocalDate desde, LocalDate hasta) {
 
         SocioEntity socio = socioRepository.findById(socioId).orElse(null);
-        if (socio == null) return new BaseResponse<>("Socio no encontrado", 404, null);
+        if (socio == null)
+            return new BaseResponse<>("Socio no encontrado", 404, null);
 
         var pagos = buscarPagosPorRango(socioId, desde, hasta);
         var data = pagos.stream().map(this::toPagoDto).toList();
@@ -341,7 +344,8 @@ public class FinanzasServiceImpl implements FinanzasService {
     public BaseResponse<List<PagoDto>> misPagos(String email, LocalDate desde, LocalDate hasta) {
 
         UsuarioEntity user = usuarioRepository.findByEmailIgnoreCase(email).orElse(null);
-        if (user == null) return new BaseResponse<>("Usuario no encontrado", 404, null);
+        if (user == null)
+            return new BaseResponse<>("Usuario no encontrado", 404, null);
 
         if (user.getSocios() == null || user.getSocios().isEmpty()) {
             return new BaseResponse<>("El usuario no tiene socio asociado", 400, null);
@@ -363,7 +367,8 @@ public class FinanzasServiceImpl implements FinanzasService {
     public BaseResponse<SocioResumenDto> resumenSocio(Long socioId, LocalDate desde, LocalDate hasta, Integer limit) {
 
         SocioEntity socio = socioRepository.findById(socioId).orElse(null);
-        if (socio == null) return BaseResponse.bad("Socio no encontrado");
+        if (socio == null)
+            return BaseResponse.bad("Socio no encontrado");
 
         var deudaResp = getDeudaBySocioId(socioId);
         var deuda = deudaResp.getData();
@@ -373,12 +378,12 @@ public class FinanzasServiceImpl implements FinanzasService {
         List<PagoEntity> pagos;
         if (desde != null || hasta != null) {
             pagos = buscarPagosPorRango(socioId, desde, hasta);
-            if (pagos.size() > lim) pagos = pagos.subList(0, lim);
+            if (pagos.size() > lim)
+                pagos = pagos.subList(0, lim);
         } else {
             pagos = pagoRepository.findBySocio_IdOrderByFechaPagoDesc(
                     socioId,
-                    PageRequest.of(0, lim)
-            );
+                    PageRequest.of(0, lim));
         }
 
         var ultimos = pagos.stream().map(this::toPagoDto).toList();
@@ -393,7 +398,8 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .disciplinaId(socio.getDisciplina() != null ? socio.getDisciplina().getId() : null)
                 .disciplinaNombre(socio.getDisciplina() != null ? socio.getDisciplina().getNombre() : null)
                 .arancelDisciplinaId(socio.getArancelDisciplina() != null ? socio.getArancelDisciplina().getId() : null)
-                .categoriaArancel(socio.getArancelDisciplina() != null ? socio.getArancelDisciplina().getCategoria() : null)
+                .categoriaArancel(
+                        socio.getArancelDisciplina() != null ? socio.getArancelDisciplina().getCategoria() : null)
                 .deuda(deuda)
                 .ultimosPagos(ultimos)
                 .build();
@@ -404,7 +410,8 @@ public class FinanzasServiceImpl implements FinanzasService {
     @Override
     @Transactional(readOnly = true)
     public BaseResponse<List<ArancelDisciplinaDto>> listarArancelesActivos() {
-        List<ArancelDisciplinaDto> data = arancelDisciplinaRepository.findByActivaTrueOrderByDisciplina_IdAscCategoriaAsc()
+        List<ArancelDisciplinaDto> data = arancelDisciplinaRepository
+                .findByActivaTrueOrderByDisciplina_IdAscCategoriaAsc()
                 .stream()
                 .map(this::toArancelDto)
                 .toList();
@@ -415,7 +422,8 @@ public class FinanzasServiceImpl implements FinanzasService {
     @Override
     @Transactional(readOnly = true)
     public BaseResponse<List<ArancelDisciplinaDto>> listarArancelesPorDisciplina(Long disciplinaId) {
-        List<ArancelDisciplinaDto> data = arancelDisciplinaRepository.findByDisciplina_IdAndActivaTrueOrderByCategoriaAsc(disciplinaId)
+        List<ArancelDisciplinaDto> data = arancelDisciplinaRepository
+                .findByDisciplina_IdAndActivaTrueOrderByCategoriaAsc(disciplinaId)
                 .stream()
                 .map(this::toArancelDto)
                 .toList();
@@ -488,8 +496,7 @@ public class FinanzasServiceImpl implements FinanzasService {
 
         return BaseResponse.ok(
                 activa ? "Arancel activado correctamente" : "Arancel desactivado correctamente",
-                toArancelDto(saved)
-        );
+                toArancelDto(saved));
     }
 
     private List<PagoEntity> buscarPagosPorRango(Long socioId, LocalDate desde, LocalDate hasta) {
@@ -562,7 +569,8 @@ public class FinanzasServiceImpl implements FinanzasService {
     }
 
     private BigDecimal calcularMontoArancel(ArancelDisciplinaEntity a) {
-        if (a == null) return BigDecimal.ZERO;
+        if (a == null)
+            return BigDecimal.ZERO;
 
         return safe(a.getMontoSocial())
                 .add(safe(a.getMontoDeportivo()))
@@ -587,7 +595,8 @@ public class FinanzasServiceImpl implements FinanzasService {
         return s == null ? null : s.trim().toUpperCase(Locale.ROOT);
     }
 
-    private static DeudaResponseDto baseDeudaResponse(SocioEntity socio, BigDecimal montoMensual, List<DeudaItemDto> items) {
+    private static DeudaResponseDto baseDeudaResponse(SocioEntity socio, BigDecimal montoMensual,
+            List<DeudaItemDto> items) {
         return DeudaResponseDto.builder()
                 .socioId(socio.getId())
                 .dni(socio.getDni())

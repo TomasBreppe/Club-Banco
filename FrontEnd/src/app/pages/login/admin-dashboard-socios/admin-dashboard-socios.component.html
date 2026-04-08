@@ -109,7 +109,11 @@
         <div class="row g-3">
           <div class="col-md-3">
             <label class="form-label">Disciplina</label>
-            <select class="form-select" [(ngModel)]="filtros.disciplinaId">
+            <select
+              class="form-select"
+              [(ngModel)]="filtros.disciplinaId"
+              (ngModelChange)="actualizarCategorias()"
+            >
               <option value="">Todas</option>
               <option *ngFor="let d of disciplinas" [value]="d.id">
                 {{ d.nombre }}
@@ -117,6 +121,15 @@
             </select>
           </div>
 
+          <div class="col-md-3">
+            <label class="form-label">Categoría</label>
+            <select class="form-select" [(ngModel)]="filtros.categoria">
+              <option value="">Todas</option>
+              <option *ngFor="let c of categoriasFiltradas" [value]="c">
+                {{ c }}
+              </option>
+            </select>
+          </div>
           <div class="col-md-3">
             <label class="form-label">Estado socio</label>
             <select class="form-select" [(ngModel)]="filtros.activo">

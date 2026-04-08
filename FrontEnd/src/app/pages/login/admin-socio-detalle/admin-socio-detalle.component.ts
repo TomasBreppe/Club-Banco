@@ -328,10 +328,9 @@ export class AdminSocioDetalleComponent implements OnInit {
       if (this.arancelSeleccionado?.vigenteDesde) {
         const periodoMinimo = this.periodoDesdeFecha(this.arancelSeleccionado.vigenteDesde);
 
-        if (this.periodoEsAnterior(per, periodoMinimo)) {
+        if (this.periodoEsAnterior(per, '2026-04')) {
           this.pagoError =
-            `No podés registrar el período ${per} porque el arancel ${this.arancelSeleccionado.categoria} ` +
-            `rige desde ${periodoMinimo}.`;
+            'Solo se permiten cuotas mensuales desde 2026-04. Para períodos anteriores, registralo como ingreso manual.';
           this.cdr.detectChanges();
           return;
         }

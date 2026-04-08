@@ -13,7 +13,10 @@ import java.util.List;
 @Service
 public interface SocioService {
     BaseResponse<SocioDto> crear(SocioCreateDto dto);
-    BaseResponse<List<SocioDto>> listar(Long disciplinaId, String estadoPago, String q);
+
+    BaseResponse<List<SocioDto>> listar(Long disciplinaId, String categoria, String estadoPago, String q);
+
     BaseResponse<SocioResumenDto> resumen(Long socioId);
+
     BaseResponse<SocioDto> cambiarActivo(Long socioId, Boolean activo);
 }

@@ -19,6 +19,8 @@ export interface Socio {
   vigenciaHasta: string;
   estadoPago: string;
   activo: boolean;
+  arancelDisciplinaId?: number | null;
+  categoriaArancel?: string | null;
 }
 
 export interface DashboardSociosResponse {

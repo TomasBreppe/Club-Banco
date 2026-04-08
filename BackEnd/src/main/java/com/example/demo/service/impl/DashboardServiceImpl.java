@@ -18,53 +18,70 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DashboardServiceImpl implements DashboardService {
 
-    private final SocioRepository socioRepository;
+        private final SocioRepository socioRepository;
 
-    @Override
-    public BaseResponse<DashboardSociosResponseDto> obtenerDashboardSocios(
-            Long disciplinaId,
-            Boolean activo,
-            String estadoPago,
-            String q
-    ) {
-        LocalDate hoy = LocalDate.now();
+        @Override
+        public BaseResponse<DashboardSociosResponseDto> obtenerDashboardSocios(
+                        Long disciplinaId,
+                        Boolean activo,
+                        String categoria,
+                        String estadoPago,
+                        String q) {
+                String qTrim = (q == null || q.trim().isBlank()) ? null : q.trim();
+                String qLower = qTrim == null ? null : qTrim.toLowerCase();
+                String categoriaNorm = (categoria == null || categoria.isBlank()) ? null
+                                : categoria.trim().toUpperCase();
+                String estadoPagoNorm = (estadoPago == null || estadoPago.isBlank()) ? null
+                                : estadoPago.trim().toUpperCase();
 
-        String qTrim = (q == null || q.trim().isBlank()) ? null : q.trim();
-        String qLower = qTrim == null ? null : qTrim.toLowerCase();
-        String qRaw = qTrim;
+                LocalDate hoy = LocalDate.now();
 
-        long totalSocios = socioRepository.count();
-        long activos = socioRepository.countActivos();
-        long inactivos = socioRepository.countInactivos();
-        long alDia = socioRepository.countAlDia(hoy);
-        long debe = socioRepository.countDebe(hoy);
+                List<SocioEntity> sociosBase = socioRepository.searchDashboard(
+                                disciplinaId,
+                                activo,
+                                categoriaNorm,
+                                qLower,
+                                qTrim);
 
-        DashboardSociosResumenDto resumen = DashboardSociosResumenDto.builder()
-                .totalSocios(totalSocios)
-                .activos(activos)
-                .inactivos(inactivos)
-                .alDia(alDia)
-                .debe(debe)
-                .build();
+                List<SocioDto> sociosDto = sociosBase.stream()
+                                .map(s -> {
+                                        SocioDto dto = SocioMapper.toDto(s);
 
-        List<SocioEntity> socios = socioRepository.searchDashboard(
-                disciplinaId,
-                activo,
-                estadoPago,
-                qLower,
-                qRaw,
-                hoy
-        );
+                                        if (Boolean.FALSE.equals(s.getActivo())) {
+                                                dto.setEstadoPago("INACTIVO");
+                                                return dto;
+                                        }
 
-        List<SocioDto> sociosDto = socios.stream()
-                .map(SocioMapper::toDto)
-                .toList();
+                                        if (s.getVigenciaHasta() != null && !s.getVigenciaHasta().isBefore(hoy)) {
+                                                dto.setEstadoPago("AL_DIA");
+                                        } else {
+                                                dto.setEstadoPago("DEBE");
+                                        }
 
-        DashboardSociosResponseDto data = DashboardSociosResponseDto.builder()
-                .resumen(resumen)
-                .socios(sociosDto)
-                .build();
+                                        return dto;
+                                })
+                                .filter(s -> estadoPagoNorm == null || estadoPagoNorm.equals(s.getEstadoPago()))
+                                .toList();
 
-        return new BaseResponse<>("Dashboard de socios obtenido correctamente", 200, data);
-    }
+                long totalSocios = sociosDto.size();
+                long activosCount = sociosDto.stream().filter(s -> Boolean.TRUE.equals(s.getActivo())).count();
+                long inactivosCount = sociosDto.stream().filter(s -> Boolean.FALSE.equals(s.getActivo())).count();
+                long alDia = sociosDto.stream().filter(s -> "AL_DIA".equals(s.getEstadoPago())).count();
+                long debe = sociosDto.stream().filter(s -> "DEBE".equals(s.getEstadoPago())).count();
+
+                DashboardSociosResumenDto resumen = DashboardSociosResumenDto.builder()
+                                .totalSocios(totalSocios)
+                                .activos(activosCount)
+                                .inactivos(inactivosCount)
+                                .alDia(alDia)
+                                .debe(debe)
+                                .build();
+
+                DashboardSociosResponseDto data = DashboardSociosResponseDto.builder()
+                                .resumen(resumen)
+                                .socios(sociosDto)
+                                .build();
+
+                return new BaseResponse<>("Dashboard de socios obtenido correctamente", 200, data);
+        }
 }
