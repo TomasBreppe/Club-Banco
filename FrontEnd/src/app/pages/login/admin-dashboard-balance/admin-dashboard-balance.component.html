@@ -21,9 +21,9 @@
     <a routerLink="/admin/dashboard/balance" class="nav-chip active">Balance</a>
   </div>
 
-  <div class="card shadow-sm mb-4">
+  <div class="card filters-card shadow-sm mb-4">
     <div class="card-body">
-      <div class="row g-3 align-items-end">
+      <div class="row g-3 align-items-end filters-grid">
         <div class="col-md-4">
           <label class="form-label">Fecha desde</label>
           <input type="date" class="form-control" [(ngModel)]="fechaDesde" />
@@ -59,9 +59,9 @@
   <ng-container *ngIf="!cargando && resumen">
     <div class="row g-3 mb-4">
       <div class="col-md-4">
-        <div class="card card-dashboard shadow-sm h-100">
+        <div class="card card-dashboard kpi-simple shadow-sm h-100">
           <div class="card-body text-center">
-            <h6 class="text-muted">Ingresos del período</h6>
+            <h6>Ingresos del período</h6>
             <h2 class="text-success">
               {{ resumen.ingresosMes | currency: 'ARS' : 'symbol' : '1.2-2' }}
             </h2>
@@ -70,9 +70,9 @@
       </div>
 
       <div class="col-md-4">
-        <div class="card card-dashboard shadow-sm h-100">
+        <div class="card card-dashboard kpi-simple shadow-sm h-100">
           <div class="card-body text-center">
-            <h6 class="text-muted">Gastos del período</h6>
+            <h6>Gastos del período</h6>
             <h2 class="text-danger">
               {{ resumen.gastosMes | currency: 'ARS' : 'symbol' : '1.2-2' }}
             </h2>
@@ -81,9 +81,9 @@
       </div>
 
       <div class="col-md-4">
-        <div class="card card-dashboard shadow-sm h-100">
+        <div class="card card-dashboard kpi-simple shadow-sm h-100">
           <div class="card-body text-center">
-            <h6 class="text-muted">Neto del período</h6>
+            <h6>Neto del período</h6>
             <h2 [class]="getNetoClass()">
               {{ resumen.netoMes | currency: 'ARS' : 'symbol' : '1.2-2' }}
             </h2>
@@ -92,21 +92,19 @@
       </div>
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <div class="card chart-card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="mb-3">Comparación del período</h5>
+        <h5 class="chart-title">Comparación del período</h5>
         <div class="chart-box">
           <canvas #chartBalance></canvas>
         </div>
       </div>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card table-card shadow-sm">
       <div class="card-body">
-        <div
-          class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3"
-        >
-          <h5 class="mb-0">Resumen</h5>
+        <div class="table-toolbar">
+          <h5 class="table-title">Resumen</h5>
 
           <button class="btn btn-success" (click)="exportarBalance()" [disabled]="!resumen">
             <i class="bi bi-file-earmark-excel me-2"></i>

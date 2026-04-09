@@ -37,38 +37,38 @@
   <ng-container *ngIf="!cargando && resumen">
     <div class="row g-3 mb-4">
       <div class="col-md-4">
-        <div class="card card-dashboard shadow-sm h-100">
-          <div class="card-body text-center">
-            <h6 class="text-muted">Total de ingresos del mes</h6>
+        <div class="card card-dashboard kpi-simple shadow-sm h-100">
+          <div class="card-body">
+            <h6>Total de ingresos del mes</h6>
             <h2>{{ resumen.totalMes | currency: 'ARS' : 'symbol' : '1.2-2' }}</h2>
           </div>
         </div>
       </div>
 
       <div class="col-md-4">
-        <div class="card card-dashboard shadow-sm h-100">
-          <div class="card-body text-center">
-            <h6 class="text-muted">Cantidad de pagos del mes</h6>
+        <div class="card card-dashboard kpi-simple shadow-sm h-100">
+          <div class="card-body">
+            <h6>Cantidad de pagos del mes</h6>
             <h2>{{ resumen.cantidadPagosMes }}</h2>
           </div>
         </div>
       </div>
 
       <div class="col-md-4">
-        <div class="card card-dashboard shadow-sm h-100">
-          <div class="card-body text-center">
-            <h6 class="text-muted">Medio más usado</h6>
+        <div class="card card-dashboard kpi-simple shadow-sm h-100">
+          <div class="card-body">
+            <h6>Medio más usado</h6>
             <h2 class="fs-4">{{ formatMedio(resumen.medioMasUsado) }}</h2>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <div class="card form-card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="mb-3">Registrar ingreso manual</h5>
+        <h5 class="section-title">Registrar ingreso manual</h5>
 
-        <div class="row g-3">
+        <div class="row g-3 form-grid">
           <div class="col-md-2">
             <label class="form-label">Fecha</label>
             <input
@@ -141,21 +141,21 @@
       </div>
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <div class="card chart-card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="mb-1">Ingresos por disciplina</h5>
-        <p class="text-muted mb-3">Distribución del total ingresado según la disciplina.</p>
+        <h5 class="chart-title">Ingresos por disciplina</h5>
+        <p class="chart-subtitle">Distribución del total ingresado según la disciplina.</p>
         <div class="chart-box">
           <canvas #chartMedios></canvas>
         </div>
       </div>
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <div class="card filters-card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="mb-3">Filtros</h5>
+        <h5 class="section-title">Filtros</h5>
 
-        <div class="row g-3">
+        <div class="row g-3 filters-grid">
           <div class="col-md-3">
             <label class="form-label">Disciplina</label>
             <select class="form-select" [(ngModel)]="filtros.disciplinaId">
@@ -209,12 +209,10 @@
       </div>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card table-card shadow-sm">
       <div class="card-body">
-        <div
-          class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3"
-        >
-          <h5 class="mb-0">Listado de ingresos</h5>
+        <div class="table-toolbar">
+          <h5 class="table-title">Listado de ingresos</h5>
 
           <button
             class="btn btn-success"

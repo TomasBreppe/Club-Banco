@@ -37,38 +37,38 @@
   <ng-container *ngIf="!cargando && resumen">
     <div class="row g-3 mb-4">
       <div class="col-md-4">
-        <div class="card card-dashboard shadow-sm h-100">
-          <div class="card-body text-center">
-            <h6 class="text-muted">Total de gastos del mes</h6>
+        <div class="card card-dashboard kpi-simple shadow-sm h-100">
+          <div class="card-body">
+            <h6>Total de gastos del mes</h6>
             <h2>{{ resumen.totalMes | currency: 'ARS' : 'symbol' : '1.2-2' }}</h2>
           </div>
         </div>
       </div>
 
       <div class="col-md-4">
-        <div class="card card-dashboard shadow-sm h-100">
-          <div class="card-body text-center">
-            <h6 class="text-muted">Cantidad de gastos del mes</h6>
+        <div class="card card-dashboard kpi-simple shadow-sm h-100">
+          <div class="card-body">
+            <h6>Cantidad de gastos del mes</h6>
             <h2>{{ resumen.cantidadGastosMes }}</h2>
           </div>
         </div>
       </div>
 
       <div class="col-md-4">
-        <div class="card card-dashboard shadow-sm h-100">
-          <div class="card-body text-center">
-            <h6 class="text-muted">Categoría con mayor gasto</h6>
+        <div class="card card-dashboard kpi-simple shadow-sm h-100">
+          <div class="card-body">
+            <h6>Categoría con mayor gasto</h6>
             <h2 class="fs-4">{{ formatCategoria(resumen.categoriaMayorGasto) }}</h2>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <div class="card form-card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="mb-3">Registrar gasto</h5>
+        <h5 class="section-title">Registrar gasto</h5>
 
-        <div class="row g-3">
+        <div class="row g-3 form-grid">
           <div class="col-md-2">
             <label class="form-label">Fecha</label>
             <input type="date" class="form-control" [(ngModel)]="form.fecha" name="fecha" />
@@ -142,20 +142,20 @@
       </div>
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <div class="card chart-card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="mb-3">Gastos por categoría</h5>
+        <h5 class="chart-title">Gastos por categoría</h5>
         <div class="chart-box">
           <canvas #chartCategorias></canvas>
         </div>
       </div>
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <div class="card filters-card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="mb-3">Filtros</h5>
+        <h5 class="section-title">Filtros</h5>
 
-        <div class="row g-3">
+        <div class="row g-3 filters-grid">
           <div class="col-md-3">
             <label class="form-label">Categoría</label>
             <select
@@ -217,12 +217,10 @@
       </div>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card table-card shadow-sm">
       <div class="card-body">
-        <div
-          class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3"
-        >
-          <h5 class="mb-0">Listado de gastos</h5>
+        <div class="table-toolbar">
+          <h5 class="table-title">Listado de gastos</h5>
 
           <button
             class="btn btn-success"

@@ -13,12 +13,12 @@ import {
 } from '../../../features/disciplinas.models';
 import { AdminStatsService } from '../../../core/auth/stats/admin-stats.service';
 
-
 @Component({
   standalone: true,
   selector: 'app-admin-disciplinas',
   imports: [CommonModule, FormsModule],
   templateUrl: './admin-disciplinas.component.html',
+  styleUrls: ['./admin-disciplinas.component.css'],
 })
 export class AdminDisciplinasComponent implements OnInit {
   items: DisciplinaDto[] = [];
@@ -172,9 +172,7 @@ export class AdminDisciplinasComponent implements OnInit {
     this.cdr.detectChanges();
 
     const requests = this.items.map((d) =>
-      this.api.getArancelesPorDisciplina(d.id).pipe(
-        catchError(() => of({ data: [] } as any))
-      ),
+      this.api.getArancelesPorDisciplina(d.id).pipe(catchError(() => of({ data: [] } as any))),
     );
 
     forkJoin(requests)
@@ -309,9 +307,11 @@ export class AdminDisciplinasComponent implements OnInit {
   }
 
   totalArancel(a: ArancelDisciplinaDto): number {
-    return Number(a.montoSocial || 0) +
+    return (
+      Number(a.montoSocial || 0) +
       Number(a.montoDeportivo || 0) +
-      Number(a.montoPreparacionFisica || 0);
+      Number(a.montoPreparacionFisica || 0)
+    );
   }
 
   primerDiaMesSiguiente(): string {

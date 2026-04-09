@@ -1,0 +1,645 @@
+:host {
+  display: block;
+}
+
+/* =========================================================
+   LAYOUT GENERAL
+========================================================= */
+.container,
+.container-fluid {
+  max-width: 100%;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.page-head h2 {
+  margin: 0;
+  color: var(--cb-text);
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.page-head p {
+  margin: 0.35rem 0 0 0;
+  color: var(--cb-text-muted) !important;
+  font-size: 1rem;
+}
+
+/* =========================================================
+   CHIP DE PERIODO
+========================================================= */
+.period-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff;
+  border: 1px solid var(--cb-border);
+  color: var(--cb-text-soft);
+  padding: 0.78rem 1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: var(--cb-shadow-soft);
+  white-space: nowrap;
+}
+
+/* =========================================================
+   NAV
+========================================================= */
+.dashboard-nav {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.nav-chip {
+  text-decoration: none;
+  color: var(--cb-text-soft);
+  background: #fff;
+  border: 1px solid var(--cb-border);
+  padding: 0.62rem 1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  box-shadow: var(--cb-shadow-soft);
+}
+
+.nav-chip:hover {
+  color: var(--cb-text);
+  background: #f8fbff;
+  border-color: #c7dafb;
+  transform: translateY(-1px);
+}
+
+.nav-chip.active {
+  background: #1f2937;
+  color: #fff;
+  border-color: #1f2937;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+}
+
+/* =========================================================
+   CARDS GENERALES
+========================================================= */
+.card,
+.card-dashboard,
+.kpi-card,
+.dashboard-card,
+.resume-box {
+  border: 1px solid var(--cb-border) !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: var(--cb-shadow-soft) !important;
+  overflow: hidden;
+}
+
+.card.shadow-sm,
+.card-dashboard.shadow-sm,
+.kpi-card.shadow-sm,
+.dashboard-card.shadow-sm {
+  box-shadow: var(--cb-shadow-soft) !important;
+}
+
+.card-header {
+  background: linear-gradient(180deg, #fbfdff 0%, #f4f8ff 100%);
+  border-bottom: 1px solid var(--cb-border);
+  color: var(--cb-text);
+  font-size: 1.02rem;
+  font-weight: 800;
+  padding: 1rem 1.2rem;
+}
+
+.card-body,
+.card-dashboard .card-body,
+.kpi-card .card-body,
+.dashboard-card .card-body {
+  padding: 1.35rem;
+}
+
+/* =========================================================
+   KPI
+========================================================= */
+.kpi-card {
+  position: relative;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  border-color: #c7dafb !important;
+  box-shadow: 0 16px 26px rgba(34, 86, 160, 0.09) !important;
+}
+
+.kpi-label {
+  font-size: 0.95rem;
+  color: var(--cb-text-muted);
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--cb-text);
+}
+
+.kpi-sub {
+  margin-top: 8px;
+  font-size: 0.92rem;
+  color: var(--cb-text-muted);
+}
+
+/* KPI simples de gastos / ingresos / balance */
+.row.g-3 .card.card-dashboard .card-body.text-center h6 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cb-text-muted) !important;
+  margin-bottom: 0.8rem;
+}
+
+.row.g-3 .card.card-dashboard .card-body.text-center h2 {
+  margin: 0;
+  font-weight: 900;
+  font-size: 2rem;
+  color: var(--cb-text);
+}
+
+/* =========================================================
+   DASHBOARD GENERAL - TARJETAS DE ACCESO
+========================================================= */
+.dashboard-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  border-color: #c7dafb !important;
+  box-shadow: 0 16px 26px rgba(34, 86, 160, 0.09) !important;
+}
+
+.icon-box {
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  background: var(--cb-primary-soft);
+  color: var(--cb-primary);
+}
+
+.go-link {
+  font-weight: 800;
+  color: var(--cb-primary);
+  text-decoration: none;
+}
+
+.go-link:hover {
+  color: var(--cb-primary-hover);
+}
+
+/* =========================================================
+   FORMULARIOS
+========================================================= */
+.form-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--cb-text-soft);
+  margin-bottom: 0.45rem;
+}
+
+.form-control,
+.form-select,
+textarea.form-control {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--cb-border);
+  box-shadow: none !important;
+  background: #fff;
+  color: var(--cb-text);
+  transition: all 0.2s ease;
+}
+
+textarea.form-control {
+  min-height: unset;
+  resize: vertical;
+}
+
+.form-control::placeholder {
+  color: #94a3b8;
+}
+
+.form-control:focus,
+.form-select:focus,
+textarea.form-control:focus {
+  border-color: #bad0fb;
+  box-shadow: 0 0 0 0.2rem rgba(47, 109, 246, 0.12) !important;
+}
+
+/* bloques de filtros / formularios */
+.card .card-body > h5 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--cb-text);
+}
+
+/* =========================================================
+   BOTONES
+========================================================= */
+.btn {
+  border-radius: 12px;
+  font-weight: 700;
+  min-height: 42px;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-dark {
+  background: #1f2937;
+  border-color: #1f2937;
+}
+
+.btn-dark:hover {
+  background: #111827;
+  border-color: #111827;
+}
+
+.btn-success {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+.btn-success:hover {
+  background: #15803d;
+  border-color: #15803d;
+}
+
+.btn-danger {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.btn-outline-secondary {
+  border-color: #cfd8e3;
+  color: #475569;
+}
+
+.btn-outline-secondary:hover {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #b9c6d5;
+}
+
+/* =========================================================
+   CHARTS
+========================================================= */
+.chart-box {
+  position: relative;
+  height: 360px;
+  width: 100%;
+  padding-top: 0.25rem;
+}
+
+canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* =========================================================
+   TABLAS
+========================================================= */
+.table-responsive {
+  border: 1px solid var(--cb-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: #fbfdff;
+  --bs-table-hover-bg: #f6faff;
+  margin-bottom: 0;
+}
+
+.table thead th {
+  background: #f7fbff;
+  border-bottom: 1px solid var(--cb-border);
+  border-top: none;
+  color: var(--cb-text);
+  font-weight: 800;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.table td,
+.table th {
+  border-color: var(--cb-border);
+  vertical-align: middle;
+}
+
+.table tbody td {
+  color: var(--cb-text-soft);
+  font-size: 0.93rem;
+}
+
+.table tbody tr:hover {
+  background: #f9fbff;
+}
+
+/* =========================================================
+   RESUMEN BOX
+========================================================= */
+.resume-box {
+  padding: 1rem !important;
+  border-radius: 16px !important;
+}
+
+.resume-box .small,
+.resume-box .text-muted {
+  color: var(--cb-text-muted) !important;
+}
+
+.resume-box .fs-5 {
+  font-weight: 800 !important;
+}
+
+/* =========================================================
+   ALERTAS
+========================================================= */
+.alert {
+  border-radius: 16px;
+  border-width: 1px;
+}
+
+.alert-danger {
+  background: #fff1f1;
+  border-color: #f3c8c8;
+  color: #b91c1c;
+}
+
+.alert-success {
+  background: #eefcf3;
+  border-color: #b7ecc7;
+  color: #166534;
+}
+
+.alert-warning {
+  background: #fff9ec;
+  border-color: #fde0a7;
+  color: #9b6500;
+}
+
+/* =========================================================
+   BADGES
+========================================================= */
+.badge {
+  font-size: 0.82rem;
+  padding: 0.45rem 0.72rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.badge.bg-success {
+  background: #eefcf3 !important;
+  color: #167d3f !important;
+  border: 1px solid #b7ecc7;
+}
+
+.badge.bg-danger {
+  background: #fff1f1 !important;
+  color: #c23030 !important;
+  border: 1px solid #f3c8c8;
+}
+
+.badge.bg-secondary {
+  background: #f3f6fb !important;
+  color: #607086 !important;
+  border: 1px solid #dde6f1;
+}
+
+/* =========================================================
+   HELPERS DE COLOR
+========================================================= */
+.text-success {
+  color: #15803d !important;
+}
+
+.text-danger {
+  color: #dc2626 !important;
+}
+
+.text-primary {
+  color: #2563eb !important;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width: 992px) {
+  .row.g-3 .card.card-dashboard .card-body.text-center h2 {
+    font-size: 1.7rem;
+  }
+
+  .chart-box {
+    height: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-head {
+    margin-bottom: 1.2rem;
+  }
+
+  .page-head h2 {
+    font-size: 1.6rem;
+  }
+
+  .card-header,
+  .card-body,
+  .card-dashboard .card-body,
+  .kpi-card .card-body,
+  .dashboard-card .card-body {
+    padding: 1rem;
+  }
+
+  .period-chip,
+  .nav-chip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dashboard-nav {
+    flex-direction: column;
+  }
+
+  .chart-box {
+    height: 280px;
+  }
+
+  .kpi-value,
+  .row.g-3 .card.card-dashboard .card-body.text-center h2 {
+    font-size: 1.5rem;
+  }
+
+  /* =========================================================
+   SECCIONES MAS MARCADAS
+========================================================= */
+  .section-card {
+    border: 1px solid var(--cb-border) !important;
+    border-radius: 20px !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    box-shadow: var(--cb-shadow-soft) !important;
+    overflow: hidden;
+  }
+
+  .section-card .card-body {
+    padding: 1.35rem;
+  }
+
+  .section-title {
+    font-size: 1.02rem;
+    font-weight: 800;
+    color: var(--cb-text);
+    margin-bottom: 1rem;
+  }
+
+  .section-subtitle {
+    font-size: 0.9rem;
+    color: var(--cb-text-muted);
+    margin-top: -0.35rem;
+    margin-bottom: 1rem;
+  }
+
+  /* =========================================================
+   KPI MAS PARECIDOS A SOCIOS
+========================================================= */
+  .kpi-simple .card-body {
+    text-align: center;
+    padding: 1.2rem 1rem;
+  }
+
+  .kpi-simple h6,
+  .kpi-simple .kpi-mini-label {
+    margin-bottom: 0.55rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--cb-text-muted) !important;
+  }
+
+  .kpi-simple h2,
+  .kpi-simple .kpi-mini-value {
+    margin: 0;
+    font-size: 1.9rem;
+    font-weight: 900;
+    color: var(--cb-text);
+  }
+
+  /* =========================================================
+   FILTROS / FORMULARIOS
+========================================================= */
+  .filters-card .card-body,
+  .form-card .card-body {
+    padding: 1.2rem 1.2rem 1.1rem;
+  }
+
+  .filters-grid .form-label,
+  .form-grid .form-label {
+    font-size: 0.84rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .filters-actions,
+  .form-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .filters-actions .btn,
+  .form-actions .btn {
+    min-width: 140px;
+  }
+
+  /* =========================================================
+   TABLAS MAS LIMPIAS
+========================================================= */
+  .table-card .card-body {
+    padding-top: 1rem;
+  }
+
+  .table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .table-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--cb-text);
+    margin: 0;
+  }
+
+  /* =========================================================
+   GRAFICOS
+========================================================= */
+  .chart-card .card-body {
+    padding: 1.2rem;
+  }
+
+  .chart-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--cb-text);
+    margin-bottom: 0.35rem;
+  }
+
+  .chart-subtitle {
+    font-size: 0.88rem;
+    color: var(--cb-text-muted);
+    margin-bottom: 1rem;
+  }
+
+  /* =========================================================
+   RESPONSIVE EXTRA
+========================================================= */
+  @media (max-width: 768px) {
+    .filters-actions .btn,
+    .form-actions .btn {
+      width: 100%;
+    }
+
+    .table-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+}

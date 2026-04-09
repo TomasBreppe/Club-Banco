@@ -30,50 +30,15 @@
         <span>Disciplinas</span>
       </a>
 
-    <!--  <a routerLink="/admin/pagos" routerLinkActive="active" class="menu-item">
-        <i class="bi bi-cash-coin"></i>
-        <span>Pagos</span>
-      </a> -->
-
       <a routerLink="/admin/dashboard" routerLinkActive="active" class="menu-item">
         <i class="bi bi-bar-chart-line-fill"></i>
         <span>Reportes</span>
       </a>
     </nav>
-
-    <!--  <div class="sidebar-footer">
-      <ng-container *ngIf="stats$ | async as st; else statsLoadingSide">
-        <div class="side-stats">
-          <div class="side-stat">
-            <span>Socios</span>
-            <b>{{ st.socios }}</b>
-          </div>
-
-          <div class="side-stat">
-            <span>Disciplinas</span>
-            <b>{{ st.disciplinasActivas }}</b>
-          </div>
-
-          <div class="side-stat warn">
-            <span>Deudores</span>
-            <b>{{ st.deudores }}</b>
-          </div>
-        </div>
-      </ng-container>
-
-      <ng-template #statsLoadingSide>
-        <div class="side-stats">
-          <div class="side-stat"><span>Socios</span><b>—</b></div>
-          <div class="side-stat"><span>Disciplinas</span><b>—</b></div>
-          <div class="side-stat warn"><span>Deudores</span><b>—</b></div>
-        </div>
-      </ng-template>
-    </div> -->
   </aside>
 
   <!-- MAIN -->
   <div class="main-area">
-    <!-- TOPBAR -->
     <header class="topbar">
       <div class="topbar-left">
         <h5 class="page-title m-0">CLUB BANCO</h5>
@@ -148,11 +113,14 @@
       </div>
     </header>
 
-    <!-- CONTENT -->
     <main class="content">
       <div class="content-inner">
         <router-outlet></router-outlet>
       </div>
     </main>
+
+    <footer class="admin-footer">
+      © 2026 Club Banco. Todos los derechos reservados.
+    </footer>
   </div>
 </div>

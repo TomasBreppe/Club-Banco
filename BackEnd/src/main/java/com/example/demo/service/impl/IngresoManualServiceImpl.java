@@ -46,7 +46,7 @@ public class IngresoManualServiceImpl implements IngresoManualService {
             return new BaseResponse<>("La categoría ingresada no es válida", 400, null);
         }
 
-        if (categoria == CategoriaIngresoManual.OTROS &&
+        if (categoria == CategoriaIngresoManual.CUOTAS_ATRASADAS &&
                 (dto.getDescripcion() == null || dto.getDescripcion().trim().isBlank())) {
             return new BaseResponse<>("La descripción es obligatoria cuando la categoría es OTROS", 400, null);
         }

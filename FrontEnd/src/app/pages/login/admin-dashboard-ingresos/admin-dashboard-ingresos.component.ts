@@ -74,6 +74,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
     'MANTOVANI',
     'MUTUAL',
     'PLAYAS',
+    'CUOTAS ATRASADAS'
   ];
 
   mediosIngresoManual: string[] = ['BANCO', 'EFECTIVO'];

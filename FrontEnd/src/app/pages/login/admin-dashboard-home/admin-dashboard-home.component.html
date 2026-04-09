@@ -25,7 +25,7 @@
   <ng-container *ngIf="!cargando && data">
     <div class="row g-3 mb-4">
       <div class="col-md-6 col-xl-3">
-        <div class="card kpi-card shadow-sm h-100 border-start border-primary border-4">
+        <div class="card kpi-card shadow-sm h-100">
           <div class="card-body">
             <div class="kpi-label">Socios activos</div>
             <div class="kpi-value text-primary">{{ data.sociosActivos }}</div>
@@ -35,7 +35,7 @@
       </div>
 
       <div class="col-md-6 col-xl-3">
-        <div class="card kpi-card shadow-sm h-100 border-start border-danger border-4">
+        <div class="card kpi-card shadow-sm h-100">
           <div class="card-body">
             <div class="kpi-label">Gastos del mes</div>
             <div class="kpi-value text-danger">
@@ -47,7 +47,7 @@
       </div>
 
       <div class="col-md-6 col-xl-3">
-        <div class="card kpi-card shadow-sm h-100 border-start border-success border-4">
+        <div class="card kpi-card shadow-sm h-100">
           <div class="card-body">
             <div class="kpi-label">Ingresos del mes</div>
             <div class="kpi-value text-success">
@@ -59,12 +59,7 @@
       </div>
 
       <div class="col-md-6 col-xl-3">
-        <div
-          class="card kpi-card shadow-sm h-100"
-          [class.border-success]="data.balanceMes >= 0"
-          [class.border-danger]="data.balanceMes < 0"
-          style="border-left-width: 4px !important; border-left-style: solid;"
-        >
+        <div class="card kpi-card shadow-sm h-100">
           <div class="card-body">
             <div class="kpi-label">Balance del mes</div>
             <div class="kpi-value" [class]="getBalanceClass()">

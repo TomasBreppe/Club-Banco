@@ -18,6 +18,7 @@ import {
   selector: 'app-admin-socio-detalle',
   imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './admin-socio-detalle.component.html',
+  styleUrls: ['./admin-socio-detalle.component.css'],
 })
 export class AdminSocioDetalleComponent implements OnInit {
   loading = false;

@@ -8,5 +8,5 @@ public enum CategoriaIngresoManual {
     FUTBOL_TORNEOS,
     FUTBOL_ALQUILERES,
     PLAYAS,
-    OTROS
+    CUOTAS_ATRASADAS 
 }
