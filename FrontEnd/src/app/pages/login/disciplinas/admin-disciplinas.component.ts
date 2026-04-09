@@ -13,6 +13,7 @@ import {
 } from '../../../features/disciplinas.models';
 import { AdminStatsService } from '../../../core/auth/stats/admin-stats.service';
 
+
 @Component({
   standalone: true,
   selector: 'app-admin-disciplinas',
@@ -23,6 +24,8 @@ export class AdminDisciplinasComponent implements OnInit {
   items: DisciplinaDto[] = [];
   nombre = '';
   loading = false;
+  initialLoading = true;
+  cargandoAranceles = false;
   error: string | null = null;
 
   arancelesPorDisciplina: Record<number, ArancelDisciplinaDto[]> = {};
@@ -47,7 +50,13 @@ export class AdminDisciplinasComponent implements OnInit {
     this.inicializarFormularios();
     this.cdr.detectChanges();
 
-    this.cargarAranceles();
+    if (this.items.length > 0) {
+      this.cargarAranceles();
+    } else {
+      this.initialLoading = false;
+      this.cargandoAranceles = false;
+      this.cdr.detectChanges();
+    }
   }
 
   inicializarFormularios(): void {
@@ -79,6 +88,7 @@ export class AdminDisciplinasComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.items = res.data ?? [];
+          this.arancelesPorDisciplina = {};
           this.inicializarFormularios();
           this.cdr.detectChanges();
           this.cargarAranceles();
@@ -150,24 +160,43 @@ export class AdminDisciplinasComponent implements OnInit {
   }
 
   cargarAranceles(): void {
-    if (!this.items.length) return;
+    if (!this.items.length) {
+      this.initialLoading = false;
+      this.cargandoAranceles = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.cargandoAranceles = true;
+    this.errorArancel = null;
+    this.cdr.detectChanges();
 
     const requests = this.items.map((d) =>
-      this.api.getArancelesPorDisciplina(d.id).pipe(catchError(() => of({ data: [] } as any))),
+      this.api.getArancelesPorDisciplina(d.id).pipe(
+        catchError(() => of({ data: [] } as any))
+      ),
     );
 
-    forkJoin(requests).subscribe({
-      next: (responses) => {
-        responses.forEach((res, index) => {
-          const disciplina = this.items[index];
-          this.arancelesPorDisciplina[disciplina.id] = res?.data ?? [];
-        });
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.cdr.detectChanges();
-      },
-    });
+    forkJoin(requests)
+      .pipe(
+        finalize(() => {
+          this.initialLoading = false;
+          this.cargandoAranceles = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (responses) => {
+          responses.forEach((res, index) => {
+            const disciplina = this.items[index];
+            this.arancelesPorDisciplina[disciplina.id] = res?.data ?? [];
+          });
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   toggleFormulario(disciplinaId: number): void {

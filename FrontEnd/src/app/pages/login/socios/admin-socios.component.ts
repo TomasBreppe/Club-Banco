@@ -16,6 +16,7 @@ import { AdminStatsService } from '../../../core/auth/stats/admin-stats.service'
   selector: 'app-admin-socios',
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './admin-socios.component.html',
+  styleUrls: ['./admin-socios.component.css'],
 })
 export class AdminSociosComponent implements OnInit {
   socios: SocioDto[] = [];
@@ -27,9 +28,14 @@ export class AdminSociosComponent implements OnInit {
   loadingInit = false;
   loadingList = false;
   creating = false;
-
+  sortColumn: 'id' | 'dni' | 'nombre' | 'disciplina' | 'activo' | 'estadoPago' = 'id';
+  sortDirection: 'asc' | 'desc' = 'asc';
   error: string | null = null;
   textoBusqueda = '';
+
+  paginaActual = 1;
+  tamanoPagina = 10;
+  opcionesTamano = [5, 10, 20, 50];
 
   form: SocioCreateRequest = {
     dni: '',
@@ -128,6 +134,7 @@ export class AdminSociosComponent implements OnInit {
       },
     });
   }
+
   cargarSocios() {
     this.error = null;
     this.loadingList = true;
@@ -210,6 +217,7 @@ export class AdminSociosComponent implements OnInit {
             celular: '',
             disciplinaId,
             arancelDisciplinaId: 0,
+            inscripcionPagada: false,
           };
 
           f.resetForm(this.form);
@@ -233,31 +241,174 @@ export class AdminSociosComponent implements OnInit {
 
     if (!texto) {
       this.sociosFiltrados = [...this.socios];
-      return;
+    } else {
+      this.sociosFiltrados = this.socios.filter((s) => {
+        const dni = this.normalizar(s.dni);
+        const nombre = this.normalizar(s.nombre);
+        const apellido = this.normalizar(s.apellido);
+        const disciplina = this.normalizar(
+          s.disciplinaNombre || this.disciplinaNombre(s.disciplinaId),
+        );
+
+        const apellidoNombre = this.normalizar(`${s.apellido}, ${s.nombre}`);
+        const nombreApellido = this.normalizar(`${s.nombre} ${s.apellido}`);
+        const apellidoNombreSinComa = this.normalizar(`${s.apellido} ${s.nombre}`);
+
+        return (
+          dni.includes(texto) ||
+          nombre.includes(texto) ||
+          apellido.includes(texto) ||
+          disciplina.includes(texto) ||
+          apellidoNombre.includes(texto) ||
+          nombreApellido.includes(texto) ||
+          apellidoNombreSinComa.includes(texto)
+        );
+      });
     }
 
-    this.sociosFiltrados = this.socios.filter((s) => {
-      const dni = this.normalizar(s.dni);
-      const nombre = this.normalizar(s.nombre);
-      const apellido = this.normalizar(s.apellido);
-      const disciplina = this.normalizar(
-        s.disciplinaNombre || this.disciplinaNombre(s.disciplinaId),
-      );
+    this.ordenarSocios();
+    this.paginaActual = 1;
+  }
 
-      const apellidoNombre = this.normalizar(`${s.apellido}, ${s.nombre}`);
-      const nombreApellido = this.normalizar(`${s.nombre} ${s.apellido}`);
-      const apellidoNombreSinComa = this.normalizar(`${s.apellido} ${s.nombre}`);
+  ordenarPor(columna: 'id' | 'dni' | 'nombre' | 'disciplina' | 'activo' | 'estadoPago'): void {
+    if (this.sortColumn === columna) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = columna;
+      this.sortDirection = 'asc';
+    }
 
-      return (
-        dni.includes(texto) ||
-        nombre.includes(texto) ||
-        apellido.includes(texto) ||
-        disciplina.includes(texto) ||
-        apellidoNombre.includes(texto) ||
-        nombreApellido.includes(texto) ||
-        apellidoNombreSinComa.includes(texto)
-      );
+    this.ordenarSocios();
+    this.paginaActual = 1;
+    this.cdr.detectChanges();
+  }
+
+  ordenarSocios(): void {
+    this.sociosFiltrados = [...this.sociosFiltrados].sort((a, b) => {
+      let valorA: any;
+      let valorB: any;
+
+      switch (this.sortColumn) {
+        case 'id':
+          valorA = a.id ?? 0;
+          valorB = b.id ?? 0;
+          break;
+
+        case 'dni':
+          valorA = this.normalizar(a.dni);
+          valorB = this.normalizar(b.dni);
+          break;
+
+        case 'nombre':
+          valorA = this.normalizar(`${a.apellido}, ${a.nombre}`);
+          valorB = this.normalizar(`${b.apellido}, ${b.nombre}`);
+          break;
+
+        case 'disciplina':
+          valorA = this.normalizar(a.disciplinaNombre || this.disciplinaNombre(a.disciplinaId));
+          valorB = this.normalizar(b.disciplinaNombre || this.disciplinaNombre(b.disciplinaId));
+          break;
+
+        case 'activo':
+          valorA = a.activo ? 1 : 0;
+          valorB = b.activo ? 1 : 0;
+          break;
+
+        case 'estadoPago':
+          valorA = this.normalizar(a.estadoPago || '');
+          valorB = this.normalizar(b.estadoPago || '');
+          break;
+
+        default:
+          valorA = a.id ?? 0;
+          valorB = b.id ?? 0;
+      }
+
+      if (valorA < valorB) {
+        return this.sortDirection === 'asc' ? -1 : 1;
+      }
+
+      if (valorA > valorB) {
+        return this.sortDirection === 'asc' ? 1 : -1;
+      }
+
+      return 0;
     });
+  }
+
+  esColumnaActiva(
+    columna: 'id' | 'dni' | 'nombre' | 'disciplina' | 'activo' | 'estadoPago',
+  ): boolean {
+    return this.sortColumn === columna;
+  }
+
+  iconoOrden(columna: 'id' | 'dni' | 'nombre' | 'disciplina' | 'activo' | 'estadoPago'): string {
+    if (this.sortColumn !== columna) {
+      return 'bi-arrow-down-up';
+    }
+
+    return this.sortDirection === 'asc' ? 'bi-sort-down-alt' : 'bi-sort-down';
+  }
+
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.sociosFiltrados.length / this.tamanoPagina));
+  }
+
+  get sociosPaginados(): SocioDto[] {
+    const inicio = (this.paginaActual - 1) * this.tamanoPagina;
+    const fin = inicio + this.tamanoPagina;
+    return this.sociosFiltrados.slice(inicio, fin);
+  }
+
+  get inicioRegistro(): number {
+    if (this.sociosFiltrados.length === 0) return 0;
+    return (this.paginaActual - 1) * this.tamanoPagina + 1;
+  }
+
+  get finRegistro(): number {
+    return Math.min(this.paginaActual * this.tamanoPagina, this.sociosFiltrados.length);
+  }
+
+  irAPagina(pagina: number): void {
+    if (pagina < 1 || pagina > this.totalPaginas) return;
+    this.paginaActual = pagina;
+    this.cdr.detectChanges();
+  }
+
+  paginaAnterior(): void {
+    this.irAPagina(this.paginaActual - 1);
+  }
+
+  paginaSiguiente(): void {
+    this.irAPagina(this.paginaActual + 1);
+  }
+
+  cambiarTamanoPagina(): void {
+    this.paginaActual = 1;
+    this.cdr.detectChanges();
+  }
+
+  get paginasVisibles(): number[] {
+    const total = this.totalPaginas;
+    const actual = this.paginaActual;
+
+    let desde = Math.max(1, actual - 2);
+    let hasta = Math.min(total, actual + 2);
+
+    if (actual <= 3) {
+      hasta = Math.min(total, 5);
+    }
+
+    if (actual >= total - 2) {
+      desde = Math.max(1, total - 4);
+    }
+
+    const paginas: number[] = [];
+    for (let i = desde; i <= hasta; i++) {
+      paginas.push(i);
+    }
+
+    return paginas;
   }
 
   private normalizar(valor: any): string {
@@ -286,13 +437,8 @@ export class AdminSociosComponent implements OnInit {
 
     this.sociosApi.cambiarActivo(s.id, nuevoEstado).subscribe({
       next: () => {
-        // actualizar estado en tabla
         s.activo = nuevoEstado;
-
-        // cerrar modal inmediatamente
         this.cerrarModalCambioEstado();
-
-        // refrescar datos
         this.statsSvc.refresh();
         this.aplicarFiltro();
         this.cdr.detectChanges();
@@ -303,7 +449,6 @@ export class AdminSociosComponent implements OnInit {
           err?.message ||
           `Error cambiando estado del socio (${err?.status || 'sin status'})`;
 
-        // cerrar modal aunque haya error
         this.cerrarModalCambioEstado();
         this.cdr.detectChanges();
       },

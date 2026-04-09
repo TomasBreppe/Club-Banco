@@ -3,20 +3,25 @@
 }
 
 .admin-layout {
-  display: flex;
   min-height: 100vh;
   background: #eef2f6;
 }
 
 /* SIDEBAR */
 .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 260px;
+  height: 100vh;
   background: linear-gradient(180deg, #1d222b 0%, #11161d 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
   padding: 20px 16px;
   box-shadow: 2px 0 18px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+  z-index: 1100;
 }
 
 .sidebar-top {
@@ -125,14 +130,18 @@
 
 /* MAIN */
 .main-area {
-  flex: 1;
+  margin-left: 260px;
   min-width: 0;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 /* TOPBAR */
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
   height: 78px;
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
@@ -305,7 +314,7 @@
 }
 
 .content-inner {
-  min-height: calc(100vh - 78px - 48px);
+  min-height: calc(100vh - 78px);
 }
 
 /* RESPONSIVE */
@@ -313,6 +322,10 @@
   .sidebar {
     width: 92px;
     padding: 18px 10px;
+  }
+
+  .main-area {
+    margin-left: 92px;
   }
 
   .brand-text,
@@ -344,12 +357,22 @@
 
 @media (max-width: 768px) {
   .admin-layout {
-    flex-direction: column;
+    display: block;
   }
 
   .sidebar {
+    position: relative;
+    top: auto;
+    left: auto;
     width: 100%;
+    height: auto;
     padding: 12px;
+    overflow-y: visible;
+  }
+
+  .main-area {
+    margin-left: 0;
+    min-height: auto;
   }
 
   .sidebar-menu {
@@ -363,6 +386,7 @@
   }
 
   .topbar {
+    position: relative;
     grid-template-columns: 1fr;
     height: auto;
     padding: 14px;
