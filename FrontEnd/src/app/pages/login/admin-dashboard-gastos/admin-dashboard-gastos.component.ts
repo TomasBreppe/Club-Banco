@@ -101,6 +101,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
       'Rivas Jesica',
       'Toledo Gustavo',
     ],
+    GASTOS_BANCARIOS: ['66', '82', '416', '417'],
     OTROS: ['Otros'],
   };
 
@@ -331,9 +332,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
       return;
     }
 
-    const categoria = this.filtros.categoria
-      ? this.filtros.categoria.toLowerCase()
-      : 'todas';
+    const categoria = this.filtros.categoria ? this.filtros.categoria.toLowerCase() : 'todas';
 
     const concepto = this.filtros.concepto?.trim()
       ? this.filtros.concepto.trim().replace(/\s+/g, '_')

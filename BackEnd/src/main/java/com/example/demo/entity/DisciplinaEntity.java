@@ -5,7 +5,11 @@ import lombok.*;
 
 @Entity
 @Table(name = "disciplina")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class DisciplinaEntity {
 
     @Id
@@ -17,4 +21,8 @@ public class DisciplinaEntity {
 
     @Column(nullable = false)
     private Boolean activa = true;
+
+    @OneToMany(mappedBy = "disciplina")
+    @Builder.Default
+    private java.util.List<SocioDisciplinaEntity> socioDisciplinas = new java.util.ArrayList<>();
 }

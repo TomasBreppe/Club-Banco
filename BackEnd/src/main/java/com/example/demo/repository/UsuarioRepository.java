@@ -8,13 +8,16 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface UsuarioRepository extends JpaRepository<UsuarioEntity, Long> {
+
     Optional<UsuarioEntity> findByEmailIgnoreCase(String email);
+
     boolean existsByEmailIgnoreCase(String email);
+
     @Query("""
-   SELECT u FROM UsuarioEntity u
-   LEFT JOIN FETCH u.socios s
-   LEFT JOIN FETCH s.disciplina
-   WHERE UPPER(u.email) = UPPER(:email)
-""")
+        SELECT DISTINCT u
+        FROM UsuarioEntity u
+        LEFT JOIN FETCH u.socios s
+        WHERE UPPER(u.email) = UPPER(:email)
+    """)
     Optional<UsuarioEntity> findByEmailWithSocios(@Param("email") String email);
 }

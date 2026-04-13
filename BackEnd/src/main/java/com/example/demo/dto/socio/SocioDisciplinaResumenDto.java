@@ -1,5 +1,6 @@
 package com.example.demo.dto.socio;
 
+import com.example.demo.dto.deuda.DeudaResponseDto;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -9,19 +10,13 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SocioDto {
-    private Long id;
-    private String dni;
-    private String nombre;
-    private String apellido;
-    private String genero;
-    private String telefono;
-    private String celular;
+public class SocioDisciplinaResumenDto {
+    private Long socioDisciplinaId;
     private Long disciplinaId;
     private String disciplinaNombre;
     private Long arancelDisciplinaId;
     private String categoriaArancel;
     private LocalDate vigenciaHasta;
-    private String estadoPago;
-    private Boolean activo;
+    private Boolean inscripcionPagada;
+    private DeudaResponseDto deuda;
 }

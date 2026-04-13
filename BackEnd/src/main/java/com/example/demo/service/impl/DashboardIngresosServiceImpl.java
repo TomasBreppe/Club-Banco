@@ -43,8 +43,8 @@ public class DashboardIngresosServiceImpl implements DashboardIngresosService {
         boolean hayFiltroFecha = fechaDesde != null || fechaHasta != null;
         boolean hayOtrosFiltros =
                 disciplinaId != null ||
-                        categoriaManualEnum != null ||
-                        (texto != null && !texto.isBlank());
+                categoriaManualEnum != null ||
+                (texto != null && !texto.isBlank());
 
         boolean filtroDisciplina = disciplinaId != null;
         boolean filtroCategoriaManual = categoriaManualEnum != null;
@@ -65,7 +65,6 @@ public class DashboardIngresosServiceImpl implements DashboardIngresosService {
         List<PagoEntity> pagos = new ArrayList<>();
         List<IngresoManualEntity> manuales = new ArrayList<>();
 
-        // Si filtra por disciplina => SOLO cuotas
         if (filtroDisciplina) {
             pagos = pagoRepository.buscarDashboardPorDisciplina(
                     disciplinaId,
@@ -73,18 +72,14 @@ public class DashboardIngresosServiceImpl implements DashboardIngresosService {
                     hastaDateTime,
                     texto == null ? "" : texto
             );
-        }
-        // Si filtra por categoría manual => SOLO manuales
-        else if (filtroCategoriaManual) {
+        } else if (filtroCategoriaManual) {
             manuales = ingresoManualRepository.buscarDashboard(
                     categoriaManualEnum,
                     desde,
                     hasta,
                     texto == null ? "" : texto
             );
-        }
-        // Si no filtra ninguno => trae todo
-        else {
+        } else {
             pagos = pagoRepository.buscarDashboardPorDisciplina(
                     null,
                     desdeDateTime,
@@ -103,6 +98,14 @@ public class DashboardIngresosServiceImpl implements DashboardIngresosService {
         List<IngresoDashboardItemDto> items = new ArrayList<>();
 
         for (PagoEntity p : pagos) {
+            String disciplinaNombre = null;
+
+            if (p.getDisciplina() != null) {
+                disciplinaNombre = p.getDisciplina().getNombre();
+            } else if (p.getSocioDisciplina() != null && p.getSocioDisciplina().getDisciplina() != null) {
+                disciplinaNombre = p.getSocioDisciplina().getDisciplina().getNombre();
+            }
+
             items.add(IngresoDashboardItemDto.builder()
                     .origen("CUOTA")
                     .id(p.getId())
@@ -112,11 +115,7 @@ public class DashboardIngresosServiceImpl implements DashboardIngresosService {
                                     ? (p.getSocio().getNombre() + " " + p.getSocio().getApellido())
                                     : "-"
                     )
-                    .disciplinaNombre(
-                            p.getSocio() != null && p.getSocio().getDisciplina() != null
-                                    ? p.getSocio().getDisciplina().getNombre()
-                                    : null
-                    )
+                    .disciplinaNombre(disciplinaNombre)
                     .categoria("CUOTAS")
                     .concepto(p.getConcepto())
                     .periodo(p.getPeriodo())

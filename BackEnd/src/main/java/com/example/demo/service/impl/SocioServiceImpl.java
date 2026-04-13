@@ -2,171 +2,239 @@ package com.example.demo.service.impl;
 
 import com.example.demo.config.BaseResponse;
 import com.example.demo.dto.pagos.PagoDto;
-import com.example.demo.dto.socio.SocioCreateDto;
-import com.example.demo.dto.socio.SocioDto;
-import com.example.demo.dto.socio.SocioResumenDto;
+import com.example.demo.dto.socio.*;
 import com.example.demo.entity.ArancelDisciplinaEntity;
 import com.example.demo.entity.DisciplinaEntity;
 import com.example.demo.entity.Genero;
+import com.example.demo.entity.SocioDisciplinaEntity;
 import com.example.demo.entity.SocioEntity;
 import com.example.demo.mapper.SocioMapper;
 import com.example.demo.repository.ArancelDisciplinaRepository;
 import com.example.demo.repository.DisciplinaRepository;
 import com.example.demo.repository.PagoRepository;
+import com.example.demo.repository.SocioDisciplinaRepository;
 import com.example.demo.repository.SocioRepository;
+import com.example.demo.service.FinanzasService;
 import com.example.demo.service.SocioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class SocioServiceImpl implements SocioService {
 
-    private final SocioRepository socioRepository;
-    private final DisciplinaRepository disciplinaRepository;
-    private final PagoRepository pagoRepository;
-    private final ArancelDisciplinaRepository arancelDisciplinaRepository;
+        private final SocioRepository socioRepository;
+        private final DisciplinaRepository disciplinaRepository;
+        private final PagoRepository pagoRepository;
+        private final ArancelDisciplinaRepository arancelDisciplinaRepository;
+        private final SocioDisciplinaRepository socioDisciplinaRepository;
+        private final FinanzasService finanzasService;
 
-    @Override
-    public BaseResponse<SocioDto> crear(SocioCreateDto dto) {
+        @Override
+        @Transactional
+        public BaseResponse<SocioDto> crear(SocioCreateDto dto) {
 
-        if (socioRepository.findByDni(dto.getDni().trim()).isPresent()) {
-            return BaseResponse.bad("Ya existe un socio con ese DNI");
+                if (socioRepository.findByDni(dto.getDni().trim()).isPresent()) {
+                        return BaseResponse.bad("Ya existe un socio con ese DNI");
+                }
+
+                if (dto.getDisciplinaId() == null) {
+                        return BaseResponse.bad("Debés seleccionar una disciplina");
+                }
+
+                if (dto.getArancelDisciplinaId() == null || dto.getArancelDisciplinaId() <= 0) {
+                        return BaseResponse.bad("Debés seleccionar una categoría/arancel");
+                }
+
+                DisciplinaEntity disc = disciplinaRepository.findById(dto.getDisciplinaId())
+                                .orElseThrow(() -> new IllegalArgumentException("Disciplina inexistente"));
+
+                ArancelDisciplinaEntity arancel = arancelDisciplinaRepository.findById(dto.getArancelDisciplinaId())
+                                .orElseThrow(() -> new IllegalArgumentException("Arancel inexistente"));
+
+                if (!arancel.getDisciplina().getId().equals(disc.getId())) {
+                        return BaseResponse.bad("El arancel no corresponde a la disciplina seleccionada");
+                }
+
+                if (Boolean.FALSE.equals(arancel.getActiva())) {
+                        return BaseResponse.bad("El arancel seleccionado está inactivo");
+                }
+
+                SocioEntity socio = SocioEntity.builder()
+                                .dni(dto.getDni().trim())
+                                .nombre(dto.getNombre().trim())
+                                .apellido(dto.getApellido().trim())
+                                .genero(Genero.valueOf(dto.getGenero().trim().toUpperCase()))
+                                .telefono(dto.getTelefono() != null ? dto.getTelefono().trim() : null)
+                                .celular(dto.getCelular().trim())
+                                .activo(true)
+                                .build();
+
+                SocioEntity saved = socioRepository.save(socio);
+
+                SocioDisciplinaEntity socioDisciplina = SocioDisciplinaEntity.builder()
+                                .socio(saved)
+                                .disciplina(disc)
+                                .arancelDisciplina(arancel)
+                                .activo(true)
+                                .vigenciaHasta(null)
+                                .inscripcionPagada(
+                                                dto.getInscripcionPagada() != null ? dto.getInscripcionPagada() : false)
+                                .build();
+
+                socioDisciplinaRepository.save(socioDisciplina);
+
+                return BaseResponse.created("Socio creado", SocioMapper.toDto(saved, socioDisciplina));
         }
 
-        if (dto.getArancelDisciplinaId() == null || dto.getArancelDisciplinaId() <= 0) {
-            return BaseResponse.bad("Debés seleccionar una categoría/arancel");
+        @Override
+        public BaseResponse<List<SocioDto>> listar(Long disciplinaId, String categoria, String estadoPago, String q) {
+
+                String qTexto = (q == null || q.isBlank()) ? null : String.valueOf(q).trim();
+                String categoriaNorm = (categoria == null || categoria.isBlank()) ? null
+                                : categoria.trim().toUpperCase();
+                String ep = (estadoPago == null || estadoPago.isBlank()) ? null : estadoPago.trim().toUpperCase();
+
+                LocalDate hoy = LocalDate.now();
+
+                List<SocioEntity> socios = socioRepository.search(
+                                disciplinaId,
+                                categoriaNorm,
+                                qTexto);
+
+                List<Long> socioIds = socios.stream().map(SocioEntity::getId).toList();
+
+                List<SocioDisciplinaEntity> relaciones = socioIds.isEmpty()
+                                ? List.of()
+                                : socioDisciplinaRepository
+                                                .findBySocio_IdInAndActivoTrueOrderBySocio_IdAscIdAsc(socioIds);
+
+                Map<Long, SocioDisciplinaEntity> primeraRelacionPorSocio = new LinkedHashMap<>();
+                Map<Long, Boolean> deudaPorSocio = new LinkedHashMap<>();
+
+                Map<Long, Long> principalIdPorSocio = new LinkedHashMap<>();
+
+                for (SocioDisciplinaEntity sd : relaciones) {
+                        Long socioId = sd.getSocio().getId();
+                        primeraRelacionPorSocio.putIfAbsent(socioId, sd);
+                        principalIdPorSocio.putIfAbsent(socioId, sd.getId());
+                }
+
+                for (SocioDisciplinaEntity sd : relaciones) {
+                        Long socioId = sd.getSocio().getId();
+                        boolean esPrincipal = java.util.Objects.equals(principalIdPorSocio.get(socioId), sd.getId());
+
+                        boolean debeInscripcion = esPrincipal && Boolean.FALSE.equals(sd.getInscripcionPagada());
+                        boolean debeCuota = sd.getVigenciaHasta() == null || sd.getVigenciaHasta().isBefore(hoy);
+
+                        deudaPorSocio.merge(socioId, (debeInscripcion || debeCuota), Boolean::logicalOr);
+                }
+
+                List<SocioDto> result = socios.stream()
+                                .map(s -> {
+                                        SocioDisciplinaEntity sd = primeraRelacionPorSocio.get(s.getId());
+                                        SocioDto dto = SocioMapper.toDto(s, sd);
+
+                                        if (Boolean.FALSE.equals(s.getActivo())) {
+                                                dto.setEstadoPago("INACTIVO");
+                                                return dto;
+                                        }
+
+                                        boolean tieneDeuda = deudaPorSocio.getOrDefault(s.getId(), false);
+                                        dto.setEstadoPago(tieneDeuda ? "DEBE" : "AL_DIA");
+                                        return dto;
+                                })
+                                .filter(dto -> ep == null || ep.equals(dto.getEstadoPago()))
+                                .toList();
+
+                return BaseResponse.ok("OK", result);
         }
 
-        DisciplinaEntity disc = disciplinaRepository.findById(dto.getDisciplinaId())
-                .orElseThrow(() -> new IllegalArgumentException("Disciplina inexistente"));
-
-        ArancelDisciplinaEntity arancel = arancelDisciplinaRepository.findById(dto.getArancelDisciplinaId())
-                .orElseThrow(() -> new IllegalArgumentException("Arancel inexistente"));
-
-        if (!arancel.getDisciplina().getId().equals(disc.getId())) {
-            return BaseResponse.bad("El arancel no corresponde a la disciplina seleccionada");
+        @Override
+        public BaseResponse<SocioResumenDto> resumen(Long socioId) {
+                return finanzasService.resumenSocio(socioId, null, null, 10);
         }
 
-        if (Boolean.FALSE.equals(arancel.getActiva())) {
-            return BaseResponse.bad("El arancel seleccionado está inactivo");
+        @Override
+        @Transactional
+        public BaseResponse<SocioDto> cambiarActivo(Long socioId, Boolean activo) {
+                SocioEntity socio = socioRepository.findById(socioId)
+                                .orElseThrow(() -> new IllegalArgumentException("Socio inexistente"));
+
+                socio.setActivo(activo);
+                SocioEntity saved = socioRepository.save(socio);
+
+                List<SocioDisciplinaEntity> relaciones = socioDisciplinaRepository.findBySocio_IdOrderByIdAsc(socioId);
+                relaciones.forEach(sd -> sd.setActivo(activo));
+                socioDisciplinaRepository.saveAll(relaciones);
+
+                SocioDisciplinaEntity sd = relaciones.stream().findFirst().orElse(null);
+
+                return BaseResponse.ok(
+                                activo ? "Socio reactivado" : "Socio dado de baja",
+                                SocioMapper.toDto(saved, sd));
         }
 
-        SocioEntity socio = SocioEntity.builder()
-                .dni(dto.getDni().trim())
-                .nombre(dto.getNombre().trim())
-                .apellido(dto.getApellido().trim())
-                .genero(Genero.valueOf(dto.getGenero().trim().toUpperCase()))
-                .telefono(dto.getTelefono() != null ? dto.getTelefono().trim() : null)
-                .celular(dto.getCelular().trim())
-                .disciplina(disc)
-                .arancelDisciplina(arancel)
-                .activo(true)
-                .vigenciaHasta(null)
-                .inscripcionPagada(dto.getInscripcionPagada() != null ? dto.getInscripcionPagada() : false)
-                .build();
+        @Override
+        @Transactional
+        public BaseResponse<SocioDto> agregarDisciplina(Long socioId, SocioAgregarDisciplinaDto dto) {
 
-        SocioEntity saved = socioRepository.save(socio);
-        return BaseResponse.created("Socio creado", SocioMapper.toDto(saved));
-    }
+                SocioEntity socio = socioRepository.findById(socioId).orElse(null);
+                if (socio == null) {
+                        return BaseResponse.bad("Socio no encontrado");
+                }
 
-    @Override
-    public BaseResponse<List<SocioDto>> listar(Long disciplinaId, String categoria, String estadoPago, String q) {
+                if (Boolean.FALSE.equals(socio.getActivo())) {
+                        return BaseResponse.bad("El socio está inactivo");
+                }
 
-        String qRaw = (q == null || q.isBlank()) ? null : q.trim();
-        String qLower = (qRaw == null) ? null : qRaw.toLowerCase();
-        String categoriaNorm = (categoria == null || categoria.isBlank()) ? null : categoria.trim().toUpperCase();
-        String ep = (estadoPago == null || estadoPago.isBlank()) ? null : estadoPago.trim().toUpperCase();
+                DisciplinaEntity disciplina = disciplinaRepository.findById(dto.getDisciplinaId()).orElse(null);
+                if (disciplina == null) {
+                        return BaseResponse.bad("Disciplina no encontrada");
+                }
 
-        LocalDate hoy = LocalDate.now();
+                ArancelDisciplinaEntity arancel = arancelDisciplinaRepository.findById(dto.getArancelDisciplinaId())
+                                .orElse(null);
+                if (arancel == null) {
+                        return BaseResponse.bad("Arancel no encontrado");
+                }
 
-        List<SocioDto> result = socioRepository.search(
-                disciplinaId,
-                categoriaNorm,
-                qLower,
-                qRaw).stream()
-                .map(s -> {
-                    SocioDto dto = SocioMapper.toDto(s);
+                if (!arancel.getDisciplina().getId().equals(disciplina.getId())) {
+                        return BaseResponse.bad("El arancel no corresponde a la disciplina");
+                }
 
-                    if (Boolean.FALSE.equals(s.getActivo())) {
-                        dto.setEstadoPago("INACTIVO");
-                        return dto;
-                    }
+                if (Boolean.FALSE.equals(arancel.getActiva())) {
+                        return BaseResponse.bad("El arancel está inactivo");
+                }
 
-                    boolean debeInscripcion = Boolean.FALSE.equals(s.getInscripcionPagada());
-                    boolean debeCuota = s.getVigenciaHasta() == null || s.getVigenciaHasta().isBefore(hoy);
+                boolean yaTiene = socioDisciplinaRepository
+                                .findBySocio_IdAndDisciplina_IdAndActivoTrue(socioId, dto.getDisciplinaId())
+                                .isPresent();
 
-                    dto.setEstadoPago((debeInscripcion || debeCuota) ? "DEBE" : "AL_DIA");
+                if (yaTiene) {
+                        return BaseResponse.bad("El socio ya tiene esa disciplina activa");
+                }
 
-                    return dto;
-                })
-                .filter(dto -> ep == null || ep.equals(dto.getEstadoPago()))
-                .toList();
+                SocioDisciplinaEntity nueva = SocioDisciplinaEntity.builder()
+                                .socio(socio)
+                                .disciplina(disciplina)
+                                .arancelDisciplina(arancel)
+                                .activo(true)
+                                .vigenciaHasta(null)
+                                .inscripcionPagada(
+                                                dto.getInscripcionPagada() != null ? dto.getInscripcionPagada() : false)
+                                .build();
 
-        return BaseResponse.ok("OK", result);
-    }
+                socioDisciplinaRepository.save(nueva);
 
-    @Override
-    public BaseResponse<SocioResumenDto> resumen(Long socioId) {
-
-        SocioEntity s = socioRepository.findById(socioId)
-                .orElseThrow(() -> new IllegalArgumentException("Socio inexistente"));
-
-        var pageable = PageRequest.of(0, 10);
-        List<PagoDto> ultimosPagos = pagoRepository
-                .findBySocio_IdOrderByFechaPagoDesc(socioId, pageable)
-                .stream()
-                .map(p -> PagoDto.builder()
-                        .id(p.getId())
-                        .concepto(p.getConcepto())
-                        .periodo(p.getPeriodo())
-                        .disciplinaId(p.getDisciplina() != null ? p.getDisciplina().getId() : null)
-                        .disciplinaNombre(p.getDisciplina() != null ? p.getDisciplina().getNombre() : null)
-                        .categoria(p.getCategoria())
-                        .montoTotal(p.getMontoTotal())
-                        .montoSocial(p.getMontoSocial())
-                        .montoDisciplina(p.getMontoDisciplina())
-                        .montoPreparacionFisica(p.getMontoPreparacionFisica())
-                        .medio(p.getMedio() != null ? p.getMedio().toString() : null)
-                        .observacion(p.getObservacion())
-                        .fechaPago(p.getFechaPago())
-                        .mpPaymentId(p.getMpPaymentId())
-                        .mpStatus(p.getMpStatus())
-                        .build())
-                .toList();
-
-        SocioResumenDto dto = SocioResumenDto.builder()
-                .socioId(s.getId())
-                .dni(s.getDni())
-                .nombre(s.getNombre())
-                .apellido(s.getApellido())
-                .disciplinaId(s.getDisciplina() != null ? s.getDisciplina().getId() : null)
-                .disciplinaNombre(s.getDisciplina() != null ? s.getDisciplina().getNombre() : null)
-                .activo(s.getActivo())
-                .vigenciaHasta(s.getVigenciaHasta())
-                .arancelDisciplinaId(s.getArancelDisciplina() != null ? s.getArancelDisciplina().getId() : null)
-                .categoriaArancel(s.getArancelDisciplina() != null ? s.getArancelDisciplina().getCategoria() : null)
-                .deuda(null)
-                .ultimosPagos(ultimosPagos)
-                .build();
-
-        return BaseResponse.ok("OK", dto);
-    }
-
-    @Override
-    public BaseResponse<SocioDto> cambiarActivo(Long socioId, Boolean activo) {
-        SocioEntity socio = socioRepository.findById(socioId)
-                .orElseThrow(() -> new IllegalArgumentException("Socio inexistente"));
-
-        socio.setActivo(activo);
-        SocioEntity saved = socioRepository.save(socio);
-
-        return BaseResponse.ok(
-                activo ? "Socio reactivado" : "Socio dado de baja",
-                SocioMapper.toDto(saved));
-    }
+                return BaseResponse.ok("Disciplina agregada correctamente", SocioMapper.toDto(socio, nueva));
+        }
 }

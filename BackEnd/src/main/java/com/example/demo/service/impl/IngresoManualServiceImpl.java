@@ -41,14 +41,14 @@ public class IngresoManualServiceImpl implements IngresoManualService {
         MedioIngresoManual medioPago;
 
         try {
-            categoria = CategoriaIngresoManual.valueOf(dto.getCategoria().trim().toUpperCase());
+            categoria = CategoriaIngresoManual.valueOf(dto.getCategoria().trim().toUpperCase().replace(" ", "_"));
         } catch (Exception e) {
             return new BaseResponse<>("La categoría ingresada no es válida", 400, null);
         }
 
         if (categoria == CategoriaIngresoManual.CUOTAS_ATRASADAS &&
                 (dto.getDescripcion() == null || dto.getDescripcion().trim().isBlank())) {
-            return new BaseResponse<>("La descripción es obligatoria cuando la categoría es OTROS", 400, null);
+            return new BaseResponse<>("La descripción es obligatoria cuando la categoría es CUOTAS_ATRASADAS", 400, null);
         }
 
         try {

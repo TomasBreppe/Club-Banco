@@ -1,365 +1,570 @@
-<div class="d-flex align-items-center justify-content-between mb-3">
-  <div>
-    <a routerLink="/admin/socios" class="btn btn-sm btn-outline-secondary me-2">← Volver</a>
-    <span class="h4 m-0">Detalle socio</span>
-  </div>
-</div>
+<div class="detalle-socio-page">
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <a routerLink="/admin/socios" class="btn btn-sm btn-outline-secondary me-2">← Volver</a>
+      <span class="h4 m-0">Detalle socio</span>
+    </div>
 
-<div *ngIf="error" class="alert alert-danger">{{ error }}</div>
-
-<div class="position-relative" style="min-height: 180px">
-  <div
-    *ngIf="loading && !data"
-    class="position-absolute d-flex align-items-center justify-content-center"
-    style="inset: 0; background: rgba(255, 255, 255, 0.65); z-index: 10; border-radius: 0.5rem"
-  >
-    <div class="spinner-border" role="status" aria-label="Cargando"></div>
+    <button class="btn btn-primary btn-sm" (click)="toggleAgregarDisciplina()">
+      + Agregar disciplina
+    </button>
   </div>
 
-  <ng-container *ngIf="data as d">
-    <div class="row g-4">
-      <!-- DATOS DEL SOCIO -->
-      <div class="col-12 col-lg-6">
-        <div class="card shadow-sm h-100">
-          <div class="card-header fw-semibold">Datos del socio</div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-12 col-sm-6">
-                <div class="text-muted small">ID</div>
-                <div class="fw-semibold">{{ d.socioId }}</div>
-              </div>
+  <div *ngIf="mostrarAgregarDisciplina" class="card shadow-sm mb-3">
+    <div class="card-header fw-semibold">Agregar nueva disciplina</div>
 
-              <div class="col-12 col-sm-6">
-                <div class="text-muted small">DNI</div>
-                <div class="fw-semibold">{{ d.dni }}</div>
-              </div>
+    <div class="card-body">
+      <div *ngIf="agregarDisciplinaError" class="alert alert-danger">
+        {{ agregarDisciplinaError }}
+      </div>
 
-              <div class="col-12 col-sm-6">
-                <div class="text-muted small">Nombre</div>
-                <div class="fw-semibold">{{ d.apellido }}, {{ d.nombre }}</div>
-              </div>
+      <div *ngIf="agregarDisciplinaOk" class="alert alert-success">
+        {{ agregarDisciplinaOk }}
+      </div>
 
-              <div class="col-12 col-sm-6">
-                <div class="text-muted small">Disciplina</div>
-                <div class="fw-semibold">{{ d.disciplinaNombre }}</div>
-              </div>
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <label class="form-label">Disciplina</label>
+          <select
+            class="form-select"
+            [(ngModel)]="agregarDisciplinaForm.disciplinaId"
+            name="nuevaDisciplina"
+            (ngModelChange)="onNuevaDisciplinaChange()"
+            [disabled]="agregarDisciplinaLoading"
+          >
+            <option [ngValue]="null">Seleccionar</option>
+            <option *ngFor="let d of disciplinasDisponibles" [ngValue]="d.id">
+              {{ d.nombre }}
+            </option>
+          </select>
+        </div>
 
-              <div class="col-12 col-sm-6">
-                <div class="text-muted small">Categoría</div>
-                <div class="fw-semibold">{{ d.categoriaArancel || '-' }}</div>
-              </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label">Categoría / arancel</label>
+          <select
+            class="form-select"
+            [(ngModel)]="agregarDisciplinaForm.arancelDisciplinaId"
+            name="nuevoArancelDisciplina"
+            [disabled]="agregarDisciplinaLoading || !agregarDisciplinaForm.disciplinaId"
+          >
+            <option [ngValue]="null">Seleccionar</option>
+            <option *ngFor="let a of arancelesNuevaDisciplina" [ngValue]="a.id">
+              {{ a.categoria }}
+            </option>
+          </select>
+        </div>
 
-              <div class="col-12 col-sm-6">
-                <div class="text-muted small">Activo</div>
-                <span class="badge" [class.bg-success]="d.activo" [class.bg-secondary]="!d.activo">
-                  {{ d.activo ? 'Sí' : 'No' }}
-                </span>
-              </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label d-block">Inscripción</label>
 
-              <div class="col-12 col-sm-6">
-                <div class="text-muted small">Estado de pago</div>
-
-                <span *ngIf="!d.deuda" class="badge bg-secondary"> SIN DATOS </span>
-
-                <span
-                  *ngIf="d.deuda"
-                  class="badge"
-                  [class.bg-success]="!tieneDeuda()"
-                  [class.bg-danger]="tieneDeuda()"
-                >
-                  {{ tieneDeuda() ? 'DEBE' : 'AL DÍA' }}
-                </span>
-              </div>
-            </div>
+          <div class="form-check mt-2">
+            <input
+              id="inscripcionPagadaNueva"
+              type="checkbox"
+              class="form-check-input"
+              [(ngModel)]="agregarDisciplinaForm.inscripcionPagada"
+              name="inscripcionPagadaNueva"
+              [disabled]="agregarDisciplinaLoading"
+            />
+            <label class="form-check-label" for="inscripcionPagadaNueva">
+              Ya tiene inscripción paga
+            </label>
           </div>
         </div>
       </div>
 
-      <!-- RESUMEN DE DEUDA -->
-      <div class="col-12 col-lg-6">
-        <div class="card shadow-sm h-100">
-          <div class="card-header fw-semibold">Resumen de deuda</div>
-          <div class="card-body">
-            <div *ngIf="!d.deuda" class="text-muted">
-              Sin datos de deuda (puede faltar cuota activa).
-            </div>
+      <div class="mt-3 d-flex justify-content-end gap-2 flex-wrap">
+        <button
+          class="btn btn-outline-secondary"
+          type="button"
+          (click)="toggleAgregarDisciplina()"
+          [disabled]="agregarDisciplinaLoading"
+        >
+          Cancelar
+        </button>
 
-            <ng-container *ngIf="d.deuda">
-              <div class="row g-3">
-                <div class="col-12 col-sm-6">
-                  <div class="text-muted small">Vigencia hasta</div>
-                  <div class="fw-semibold">{{ d.vigenciaHasta || '-' }}</div>
-                </div>
-
-                <div class="col-12 col-sm-6">
-                  <div class="text-muted small">Monto mensual</div>
-                  <div class="fw-semibold">${{ d.deuda.montoMensual ?? 0 }}</div>
-                </div>
-
-                <div class="col-12 col-sm-6">
-                  <div class="text-muted small">Meses adeudados</div>
-                  <div class="fw-semibold">{{ d.deuda.mesesAdeudados ?? 0 }}</div>
-                </div>
-
-                <div class="col-12" *ngIf="getPeriodosAdeudados().length > 0">
-                  <div class="text-muted small mb-2">Períodos adeudados</div>
-
-                  <div class="d-flex flex-wrap gap-2">
-                    <span
-                      class="badge rounded-pill bg-danger"
-                      *ngFor="let periodo of getPeriodosAdeudados()"
-                    >
-                      {{ formatearPeriodo(periodo) }}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="col-12 col-sm-6">
-                  <div
-                    class="fw-bold fs-5"
-                    [class.text-success]="(d.deuda.totalAdeudado ?? 0) === 0"
-                    [class.text-danger]="(d.deuda.totalAdeudado ?? 0) > 0"
-                  >
-                    ${{ d.deuda.totalAdeudado ?? 0 }}
-                  </div>
-                  <div class="text-muted small">Total adeudado</div>
-                </div>
-              </div>
-
-              <div
-                class="alert mt-4 mb-0"
-                [class.alert-success]="!tieneDeuda()"
-                [class.alert-danger]="tieneDeuda()"
-              >
-                <strong>{{ tieneDeuda() ? 'DEBE' : 'AL DÍA' }}</strong>
-
-                <span *ngIf="!tieneDeuda()"> - El socio no registra deuda. </span>
-
-                <span *ngIf="tieneDeuda()"> - Registra deuda pendiente. </span>
-              </div>
-            </ng-container>
-          </div>
-        </div>
-      </div>
-
-      <!-- DETALLE POR PERÍODO -->
-      <div class="col-12">
-        <div class="card shadow-sm">
-          <div class="card-header fw-semibold">Detalle por período</div>
-
-          <div class="card-body p-0">
-            <div *ngIf="d.deuda?.items?.length; else sinDetalle" class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th>Período</th>
-                    <th>Monto</th>
-                    <th>Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let item of d.deuda?.items">
-                    <td>{{ formatearPeriodo(item.periodo) }}</td>
-                    <td>${{ item.monto }}</td>
-                    <td>
-                      <span
-                        class="badge"
-                        [class.bg-success]="item.pagado"
-                        [class.bg-danger]="!item.pagado"
-                      >
-                        {{ item.pagado ? 'Pagado' : 'Adeudado' }}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <ng-template #sinDetalle>
-              <div class="p-3 text-muted">Sin períodos registrados.</div>
-            </ng-template>
-          </div>
-        </div>
-      </div>
-
-      <!-- PAGOS MANUALES -->
-      <div class="col-12">
-        <div class="card shadow-sm">
-          <div class="card-header fw-semibold">Registrar pago manual</div>
-          <div class="card-body">
-            <div *ngIf="pagoError" class="alert alert-danger">{{ pagoError }}</div>
-            <div *ngIf="pagoOk" class="alert alert-success">{{ pagoOk }}</div>
-
-            <div class="row g-3">
-              <div class="col-md-3">
-                <label class="form-label">Concepto</label>
-                <select
-                  class="form-select"
-                  [(ngModel)]="pago.concepto"
-                  name="concepto"
-                  [disabled]="loading"
-                  (ngModelChange)="onConceptoChange()"
-                >
-                  <option value="INSCRIPCION">INSCRIPCION</option>
-                  <option value="CUOTA_MENSUAL">CUOTA_MENSUAL</option>
-                </select>
-              </div>
-
-              <div class="col-md-3" *ngIf="pago.concepto === 'CUOTA_MENSUAL'">
-                <label class="form-label">Periodo (YYYY-MM)</label>
-                <input
-                  class="form-control"
-                  [(ngModel)]="pago.periodo"
-                  name="periodo"
-                  placeholder="2026-03"
-                  [disabled]="loading"
-                />
-              </div>
-
-              <div class="col-md-3" *ngIf="pago.concepto === 'CUOTA_MENSUAL'">
-                <label class="form-label">Categoría</label>
-                <select
-                  class="form-select"
-                  [(ngModel)]="pago.arancelDisciplinaId"
-                  name="arancelDisciplinaId"
-                  [disabled]="loading"
-                  (ngModelChange)="onArancelChange()"
-                >
-                  <option [ngValue]="null">Seleccionar</option>
-                  <option *ngFor="let a of aranceles" [ngValue]="a.id">
-                    {{ a.categoria }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="col-md-3">
-                <label class="form-label">Medio</label>
-                <select
-                  class="form-select"
-                  [(ngModel)]="pago.medio"
-                  name="medio"
-                  [disabled]="loading"
-                >
-                  <option value="EFECTIVO">EFECTIVO</option>
-                  <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                  <option value="MERCADO_PAGO">TARJETAS</option>
-                </select>
-              </div>
-
-              <div class="col-md-3">
-                <label class="form-label">Monto social</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  [(ngModel)]="pago.montoSocial"
-                  name="montoSocial"
-                  [disabled]="loading || pago.concepto === 'INSCRIPCION'"
-                  (ngModelChange)="recalcularMontoTotal()"
-                />
-              </div>
-
-              <div class="col-md-3">
-                <label class="form-label">Monto deportivo</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  [(ngModel)]="pago.montoDisciplina"
-                  name="montoDisciplina"
-                  [disabled]="loading || pago.concepto === 'INSCRIPCION'"
-                  (ngModelChange)="recalcularMontoTotal()"
-                />
-              </div>
-
-              <div class="col-md-3">
-                <label class="form-label">Prep. física</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  [(ngModel)]="pago.montoPreparacionFisica"
-                  name="montoPreparacionFisica"
-                  [disabled]="loading || pago.concepto === 'INSCRIPCION'"
-                  (ngModelChange)="recalcularMontoTotal()"
-                />
-              </div>
-
-              <div class="col-md-3">
-                <label class="form-label">Monto total</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  [(ngModel)]="pago.montoTotal"
-                  name="montoTotal"
-                  [disabled]="loading || pago.concepto === 'CUOTA_MENSUAL'"
-                />
-              </div>
-
-              <div class="col-md-6">
-                <label class="form-label">Observación</label>
-                <input
-                  class="form-control"
-                  [(ngModel)]="pago.observacion"
-                  name="observacion"
-                  [disabled]="loading"
-                />
-              </div>
-            </div>
-
-            <div class="mt-3 d-flex justify-content-end gap-2">
-              <button class="btn btn-primary" (click)="registrarPago()" [disabled]="loading">
-                Registrar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- HISTORIAL PAGOS -->
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Últimos pagos</div>
-        <div class="table-responsive">
-          <table class="table table-striped m-0">
-            <thead class="table-light">
-              <tr>
-                <th>Fecha</th>
-                <th>Concepto</th>
-                <th>Categoría</th>
-                <th>Periodo</th>
-                <th>Social</th>
-                <th>Deportivo</th>
-                <th>Prep. física</th>
-                <th>Total</th>
-                <th>Medio</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let p of d.ultimosPagos">
-                <td>{{ fmtFecha(p.fechaPago) }}</td>
-                <td>{{ p.concepto }}</td>
-                <td>{{ p.categoria || '-' }}</td>
-                <td>{{ p.periodo || '-' }}</td>
-                <td>${{ p.montoSocial ?? 0 }}</td>
-                <td>${{ p.montoDisciplina ?? 0 }}</td>
-                <td>${{ p.montoPreparacionFisica ?? 0 }}</td>
-                <td>${{ p.montoTotal }}</td>
-                <td>{{ p.medio }}</td>
-                <td>
-                  <button
-                    class="btn btn-sm btn-outline-success"
-                    (click)="descargarComprobantePorPago(p.id)"
-                  >
-                    Descargar
-                  </button>
-                </td>
-              </tr>
-
-              <tr *ngIf="!d.ultimosPagos.length">
-                <td colspan="10" class="text-center py-4 text-muted">Sin pagos</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <button
+          class="btn btn-primary"
+          type="button"
+          (click)="guardarNuevaDisciplina()"
+          [disabled]="agregarDisciplinaLoading"
+        >
+          Guardar disciplina
+        </button>
       </div>
     </div>
-  </ng-container>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <div class="position-relative" style="min-height: 180px">
+    <div
+      *ngIf="loading && !data"
+      class="position-absolute d-flex align-items-center justify-content-center loading-overlay"
+    >
+      <div class="spinner-border" role="status" aria-label="Cargando"></div>
+    </div>
+
+    <ng-container *ngIf="data as d">
+      <div class="row g-4">
+        <!-- DATOS DEL SOCIO -->
+        <div class="col-12" *ngIf="!d.disciplinas?.length">
+          <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Datos del socio</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-12 col-sm-4">
+                  <div class="text-muted small">ID</div>
+                  <div class="fw-semibold">{{ d.socioId }}</div>
+                </div>
+
+                <div class="col-12 col-sm-4">
+                  <div class="text-muted small">DNI</div>
+                  <div class="fw-semibold">{{ d.dni }}</div>
+                </div>
+
+                <div class="col-12 col-sm-4">
+                  <div class="text-muted small">Nombre</div>
+                  <div class="fw-semibold">{{ d.apellido }}, {{ d.nombre }}</div>
+                </div>
+
+                <div class="col-12 col-sm-4">
+                  <div class="text-muted small">Activo</div>
+                  <span
+                    class="badge"
+                    [class.bg-success]="d.activo"
+                    [class.bg-secondary]="!d.activo"
+                  >
+                    {{ d.activo ? 'Sí' : 'No' }}
+                  </span>
+                </div>
+
+                <div class="col-12 col-sm-4">
+                  <div class="text-muted small">Cantidad de disciplinas</div>
+                  <div class="fw-semibold">{{ d.disciplinas?.length || 0 }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12" *ngIf="!d.disciplinas?.length">
+          <div class="card shadow-sm">
+            <div class="card-body text-muted">El socio no tiene disciplinas activas asociadas.</div>
+          </div>
+        </div>
+
+        <!-- POR CADA DISCIPLINA -->
+        <div class="col-12" *ngFor="let disc of d.disciplinas; let i = index">
+          <div class="disciplina-block">
+            <!-- FILA 1 -->
+            <div class="row g-3 align-items-stretch">
+              <!-- DATOS DEL SOCIO -->
+              <div class="col-12 col-lg-6">
+                <div class="card shadow-sm h-100">
+                  <div class="card-header fw-semibold">Datos del socio</div>
+                  <div class="card-body">
+                    <div class="row g-3">
+                      <div class="col-12 col-sm-6">
+                        <div class="text-muted small">ID</div>
+                        <div class="fw-semibold">{{ d.socioId }}</div>
+                      </div>
+
+                      <div class="col-12 col-sm-6">
+                        <div class="text-muted small">DNI</div>
+                        <div class="fw-semibold">{{ d.dni }}</div>
+                      </div>
+
+                      <div class="col-12 col-sm-6">
+                        <div class="text-muted small">Nombre</div>
+                        <div class="fw-semibold">{{ d.apellido }}, {{ d.nombre }}</div>
+                      </div>
+
+                      <div class="col-12 col-sm-6">
+                        <div class="text-muted small">Disciplina</div>
+                        <div class="fw-semibold">{{ disc.disciplinaNombre }}</div>
+                      </div>
+
+                      <div class="col-12 col-sm-6">
+                        <div class="text-muted small">Categoría</div>
+                        <div class="fw-semibold">{{ disc.categoriaArancel || '-' }}</div>
+                      </div>
+
+                      <div class="col-12 col-sm-6">
+                        <div class="text-muted small">Activo</div>
+                        <span
+                          class="badge"
+                          [class.bg-success]="d.activo"
+                          [class.bg-secondary]="!d.activo"
+                        >
+                          {{ d.activo ? 'Sí' : 'No' }}
+                        </span>
+                      </div>
+
+                      <div class="col-12 col-sm-6">
+                        <div class="text-muted small">Celular</div>
+                        <div class="fw-semibold">{{ d.celular || '-' }}</div>
+                      </div>
+
+                      <div class="col-12 col-sm-6">
+                        <div class="text-muted small">Estado de pago</div>
+                        <span
+                          class="badge"
+                          [class.bg-success]="!tieneDeudaDisciplina(disc)"
+                          [class.bg-danger]="tieneDeudaDisciplina(disc)"
+                        >
+                          {{ tieneDeudaDisciplina(disc) ? 'DEBE' : 'AL DÍA' }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RESUMEN DE DEUDA -->
+              <div class="col-12 col-lg-6">
+                <div class="card shadow-sm h-100">
+                  <div class="card-header fw-semibold">Resumen de deuda</div>
+                  <div class="card-body">
+                    <div *ngIf="!disc.deuda" class="text-muted">
+                      Sin datos de deuda para esta disciplina.
+                    </div>
+
+                    <ng-container *ngIf="disc.deuda">
+                      <div class="row g-3">
+                        <div class="col-12 col-sm-4">
+                          <div class="text-muted small">Vigencia hasta</div>
+                          <div class="fw-semibold">{{ disc.vigenciaHasta || '-' }}</div>
+                        </div>
+
+                        <div class="col-12 col-sm-4">
+                          <div class="text-muted small">Meses adeudados</div>
+                          <div class="fw-semibold">{{ disc.deuda.mesesAdeudados ?? 0 }}</div>
+                        </div>
+
+                        <div class="col-12 col-sm-4">
+                          <div class="text-muted small">Monto mensual</div>
+                          <div class="fw-semibold">${{ disc.deuda.montoMensual ?? 0 }}</div>
+                        </div>
+
+                        <div class="col-12">
+                          <div class="text-muted small mb-2">Períodos adeudados</div>
+                          <div class="d-flex flex-wrap gap-2">
+                            <span
+                              class="badge rounded-pill bg-danger"
+                              *ngFor="let periodo of getPeriodosAdeudadosPorDisciplina(disc)"
+                            >
+                              {{ formatearPeriodo(periodo) }}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="col-12">
+                          <div
+                            class="fw-bold fs-5 mb-1"
+                            [class.text-success]="(disc.deuda.totalAdeudado ?? 0) === 0"
+                            [class.text-danger]="(disc.deuda.totalAdeudado ?? 0) > 0"
+                          >
+                            ${{ disc.deuda.totalAdeudado ?? 0 }}
+                          </div>
+                          <div class="text-muted small">Total adeudado</div>
+                        </div>
+                      </div>
+
+                      <div
+                        class="alert mt-4 mb-0"
+                        [class.alert-success]="!tieneDeudaDisciplina(disc)"
+                        [class.alert-danger]="tieneDeudaDisciplina(disc)"
+                      >
+                        <strong>{{ tieneDeudaDisciplina(disc) ? 'DEBE' : 'AL DÍA' }}</strong>
+                        <span *ngIf="!tieneDeudaDisciplina(disc)">
+                          - Esta disciplina no registra deuda pendiente.
+                        </span>
+                        <span *ngIf="tieneDeudaDisciplina(disc)">
+                          - Registra deuda pendiente.
+                        </span>
+                      </div>
+                    </ng-container>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FILA 2 -->
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <div class="card shadow-sm">
+                  <div class="card-header fw-semibold">Detalle por período</div>
+
+                  <div class="card-body p-0">
+                    <div
+                      *ngIf="disc.deuda?.items?.length; else sinDetalleDisc"
+                      class="table-responsive"
+                    >
+                      <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                          <tr>
+                            <th>Período</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let item of disc.deuda?.items">
+                            <td>{{ formatearPeriodo(item.periodo) }}</td>
+                            <td>${{ item.monto }}</td>
+                            <td>
+                              <span
+                                class="badge"
+                                [class.bg-success]="item.pagado"
+                                [class.bg-danger]="!item.pagado"
+                              >
+                                {{ item.pagado ? 'Pagado' : 'Adeudado' }}
+                              </span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <ng-template #sinDetalleDisc>
+                      <div class="p-3 text-muted">Sin períodos registrados.</div>
+                    </ng-template>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FILA 3 -->
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <div class="card shadow-sm">
+                  <div class="card-header fw-semibold">Registrar pago manual</div>
+                  <div class="card-body">
+                    <div
+                      *ngIf="pagoErrorPorDisciplina[disc.disciplinaId]"
+                      class="alert alert-danger"
+                    >
+                      {{ pagoErrorPorDisciplina[disc.disciplinaId] }}
+                    </div>
+
+                    <div *ngIf="pagoOkPorDisciplina[disc.disciplinaId]" class="alert alert-success">
+                      {{ pagoOkPorDisciplina[disc.disciplinaId] }}
+                    </div>
+
+                    <div class="row g-3">
+                      <div class="col-12 col-md-3">
+                        <label class="form-label">Concepto</label>
+                        <select
+                          class="form-select"
+                          [(ngModel)]="pagoForms[disc.disciplinaId].concepto"
+                          [name]="'concepto_' + disc.disciplinaId"
+                          [disabled]="loading"
+                          (ngModelChange)="onConceptoChangeDisciplina(disc)"
+                        >
+                          <option *ngIf="esDisciplinaPrincipal(disc)" value="INSCRIPCION">
+                            INSCRIPCION
+                          </option>
+                          <option value="CUOTA_MENSUAL">CUOTA_MENSUAL</option>
+                        </select>
+                      </div>
+
+                      <div
+                        class="col-12 col-md-3"
+                        *ngIf="pagoForms[disc.disciplinaId].concepto === 'CUOTA_MENSUAL'"
+                      >
+                        <label class="form-label">Período (YYYY-MM)</label>
+                        <input
+                          class="form-control"
+                          [(ngModel)]="pagoForms[disc.disciplinaId].periodo"
+                          [name]="'periodo_' + disc.disciplinaId"
+                          placeholder="2026-04"
+                          [disabled]="loading"
+                        />
+                      </div>
+
+                      <div
+                        class="col-12 col-md-3"
+                        *ngIf="pagoForms[disc.disciplinaId].concepto === 'CUOTA_MENSUAL'"
+                      >
+                        <label class="form-label">Categoría</label>
+                        <select
+                          class="form-select"
+                          [(ngModel)]="pagoForms[disc.disciplinaId].arancelDisciplinaId"
+                          [name]="'arancel_' + disc.disciplinaId"
+                          [disabled]="loading || !esDisciplinaPrincipal(disc)"
+                          (ngModelChange)="onArancelChangeDisciplina(disc)"
+                        >
+                          <option [ngValue]="null">Seleccionar</option>
+                          <option
+                            *ngFor="let a of arancelesPorDisciplina[disc.disciplinaId] || []"
+                            [ngValue]="a.id"
+                          >
+                            {{ a.categoria }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div class="col-12 col-md-3">
+                        <label class="form-label">Medio</label>
+                        <select
+                          class="form-select"
+                          [(ngModel)]="pagoForms[disc.disciplinaId].medio"
+                          [name]="'medio_' + disc.disciplinaId"
+                          [disabled]="loading"
+                        >
+                          <option value="EFECTIVO">EFECTIVO</option>
+                          <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                          <option value="MERCADO_PAGO">TARJETAS</option>
+                        </select>
+                      </div>
+
+                      <div class="col-12 col-md-3">
+                        <label class="form-label">Monto social</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          [(ngModel)]="pagoForms[disc.disciplinaId].montoSocial"
+                          [name]="'social_' + disc.disciplinaId"
+                          [disabled]="true"
+                        />
+                      </div>
+
+                      <div class="col-12 col-md-3">
+                        <label class="form-label">Monto deportivo</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          [(ngModel)]="pagoForms[disc.disciplinaId].montoDisciplina"
+                          [name]="'deportivo_' + disc.disciplinaId"
+                          [disabled]="true"
+                        />
+                      </div>
+
+                      <div class="col-12 col-md-3">
+                        <label class="form-label">Prep. física</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          [(ngModel)]="pagoForms[disc.disciplinaId].montoPreparacionFisica"
+                          [name]="'prep_' + disc.disciplinaId"
+                          [disabled]="true"
+                        />
+                      </div>
+
+                      <div class="col-12 col-md-3">
+                        <label class="form-label">Monto total</label>
+                        <input
+                          type="number"
+                          class="form-control"
+                          [(ngModel)]="pagoForms[disc.disciplinaId].montoTotal"
+                          [name]="'total_' + disc.disciplinaId"
+                          [disabled]="
+                            loading || pagoForms[disc.disciplinaId].concepto === 'CUOTA_MENSUAL'
+                          "
+                        />
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Observación</label>
+                        <input
+                          class="form-control"
+                          [(ngModel)]="pagoForms[disc.disciplinaId].observacion"
+                          [name]="'obs_' + disc.disciplinaId"
+                          [disabled]="loading"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="mt-3 d-flex justify-content-end gap-2 acciones-pago">
+                      <button
+                        class="btn btn-primary"
+                        (click)="registrarPagoDisciplina(disc)"
+                        [disabled]="loading"
+                      >
+                        Registrar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- FILA 4 -->
+            <div class="row g-3 mt-1">
+              <div class="col-12">
+                <div class="card shadow-sm">
+                  <div class="card-header fw-semibold">Últimos pagos</div>
+                  <div class="table-responsive">
+                    <table class="table table-striped m-0">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Fecha</th>
+                          <th>Concepto</th>
+                          <th>Categoría</th>
+                          <th>Periodo</th>
+                          <th>Social</th>
+                          <th>Deportivo</th>
+                          <th>Prep. física</th>
+                          <th>Total</th>
+                          <th>Medio</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let p of getPagosPorDisciplina(disc)">
+                          <td>{{ fmtFecha(p.fechaPago) }}</td>
+                          <td>{{ p.concepto }}</td>
+                          <td>{{ p.categoria || '-' }}</td>
+                          <td>{{ p.periodo || '-' }}</td>
+                          <td>${{ p.montoSocial ?? 0 }}</td>
+                          <td>${{ p.montoDisciplina ?? 0 }}</td>
+                          <td>${{ p.montoPreparacionFisica ?? 0 }}</td>
+                          <td>${{ p.montoTotal }}</td>
+                          <td>{{ p.medio }}</td>
+                          <td>
+                            <div class="d-flex gap-2 flex-wrap">
+                              <button
+                                class="btn btn-sm btn-outline-success"
+                                (click)="descargarComprobantePorPago(p.id)"
+                                [disabled]="p.anulado"
+                              >
+                                Descargar
+                              </button>
+
+                              <button
+                                class="btn btn-sm btn-outline-danger"
+                                *ngIf="puedeAnularPago(p)"
+                                (click)="anularPago(p)"
+                                [disabled]="anulandoPagoId === p.id"
+                              >
+                                {{ anulandoPagoId === p.id ? 'Anulando...' : 'Anular pago' }}
+                              </button>
+
+                              <span *ngIf="p.anulado" class="badge bg-danger">ANULADO</span>
+                            </div>
+
+                            <div
+                              *ngIf="p.anulado && p.motivoAnulacion"
+                              class="small text-danger mt-1"
+                            >
+                              Motivo: {{ p.motivoAnulacion }}
+                            </div>
+                          </td>
+                        </tr>
+
+                        <tr *ngIf="getPagosPorDisciplina(disc).length === 0">
+                          <td colspan="10" class="text-center py-4 text-muted">Sin pagos</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
 </div>

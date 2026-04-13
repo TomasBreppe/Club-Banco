@@ -33,9 +33,12 @@ export interface PagoDto {
   medio: string | null;
   observacion?: string | null;
   fechaPago: string;
-
   mpPaymentId?: string | null;
   mpStatus?: string | null;
+
+  anulado?: boolean;
+  fechaAnulacion?: string | null;
+  motivoAnulacion?: string | null;
 }
 
 export interface ArancelDisciplinaDto {

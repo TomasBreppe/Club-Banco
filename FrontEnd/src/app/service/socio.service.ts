@@ -22,13 +22,25 @@ export class SociosService {
   }
 
   resumen(id: number): Observable<BaseResponse<SocioResumenDto>> {
-    return this.http.get<BaseResponse<SocioResumenDto>>(`${this.base}/api/admin/socios/${id}/resumen`);
+    return this.http.get<BaseResponse<SocioResumenDto>>(
+      `${this.base}/api/admin/socios/${id}/resumen`,
+    );
+  }
+
+  agregarDisciplina(
+    socioId: number,
+    body: { disciplinaId: number; arancelDisciplinaId: number; inscripcionPagada?: boolean },
+  ): Observable<BaseResponse<any>> {
+    return this.http.post<BaseResponse<any>>(
+      `${this.base}/api/admin/socios/${socioId}/disciplinas`,
+      body,
+    );
   }
 
   cambiarActivo(id: number, valor: boolean) {
-  return this.http.patch<BaseResponse<SocioDto>>(
-    `${this.base}/api/admin/socios/${id}/activo?valor=${valor}`,
-    {}
-  );
-}
+    return this.http.patch<BaseResponse<SocioDto>>(
+      `${this.base}/api/admin/socios/${id}/activo?valor=${valor}`,
+      {},
+    );
+  }
 }

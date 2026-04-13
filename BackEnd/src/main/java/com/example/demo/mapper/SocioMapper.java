@@ -1,32 +1,36 @@
 package com.example.demo.mapper;
 
 import com.example.demo.dto.socio.SocioDto;
+import com.example.demo.entity.SocioDisciplinaEntity;
 import com.example.demo.entity.SocioEntity;
-
-import java.time.LocalDate;
 
 public class SocioMapper {
 
-    public static SocioDto toDto(SocioEntity s) {
-        String estado = "DEBE";
-        LocalDate vh = s.getVigenciaHasta();
-        if (vh != null && !vh.isBefore(LocalDate.now())) estado = "AL_DIA";
+        private SocioMapper() {
+        }
 
-        return SocioDto.builder()
-                .id(s.getId())
-                .dni(s.getDni())
-                .nombre(s.getNombre())
-                .apellido(s.getApellido())
-                .genero(String.valueOf(s.getGenero()))
-                .telefono(s.getTelefono())
-                .celular(s.getCelular())
-                .disciplinaId(s.getDisciplina() != null ? s.getDisciplina().getId() : null)
-                .disciplinaNombre(s.getDisciplina() != null ? s.getDisciplina().getNombre() : null)
-                .arancelDisciplinaId(s.getArancelDisciplina() != null ? s.getArancelDisciplina().getId() : null)
-                .categoriaArancel(s.getArancelDisciplina() != null ? s.getArancelDisciplina().getCategoria() : null)
-                .vigenciaHasta(s.getVigenciaHasta())
-                .estadoPago(estado)
-                .activo(s.getActivo())
-                .build();
-    }
+        public static SocioDto toDto(SocioEntity socio, SocioDisciplinaEntity sd) {
+                return SocioDto.builder()
+                                .id(socio.getId())
+                                .dni(socio.getDni())
+                                .nombre(socio.getNombre())
+                                .apellido(socio.getApellido())
+                                .genero(socio.getGenero() != null ? socio.getGenero().name() : null)
+                                .telefono(socio.getTelefono())
+                                .celular(socio.getCelular())
+                                .disciplinaId(sd != null && sd.getDisciplina() != null ? sd.getDisciplina().getId()
+                                                : null)
+                                .disciplinaNombre(sd != null && sd.getDisciplina() != null
+                                                ? sd.getDisciplina().getNombre()
+                                                : null)
+                                .arancelDisciplinaId(sd != null && sd.getArancelDisciplina() != null
+                                                ? sd.getArancelDisciplina().getId()
+                                                : null)
+                                .categoriaArancel(sd != null && sd.getArancelDisciplina() != null
+                                                ? sd.getArancelDisciplina().getCategoria()
+                                                : null)
+                                .vigenciaHasta(sd != null ? sd.getVigenciaHasta() : null)
+                                .activo(socio.getActivo())
+                                .build();
+        }
 }

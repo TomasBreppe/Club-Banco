@@ -109,4 +109,11 @@ public class FinanzasController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
+
+    @PatchMapping("/admin/pagos/{pagoId}/anular")
+    public BaseResponse<Void> anularPago(
+            @PathVariable Long pagoId,
+            @RequestBody(required = false) com.example.demo.dto.pagos.AnularPagoRequestDto dto) {
+        return finanzasService.anularPago(pagoId, dto != null ? dto.getMotivo() : null);
+    }
 }

@@ -1,91 +1,84 @@
 package com.example.demo.repository;
 
 import com.example.demo.entity.SocioEntity;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 public interface SocioRepository extends JpaRepository<SocioEntity, Long> {
 
-    Optional<SocioEntity> findByDni(String dni);
+  Optional<SocioEntity> findByDni(String dni);
 
-    @Query("""
-        SELECT s
-        FROM SocioEntity s
-        LEFT JOIN s.arancelDisciplina ad
-        WHERE (:disciplinaId IS NULL OR s.disciplina.id = :disciplinaId)
-          AND (:categoria IS NULL OR ad.categoria = cast(:categoria as string))
-          AND (
-            :qLower IS NULL OR
-            lower(s.apellido) LIKE concat('%', cast(:qLower as string), '%') OR
-            lower(s.nombre) LIKE concat('%', cast(:qLower as string), '%') OR
-            s.dni LIKE concat('%', cast(:qRaw as string), '%')
-          )
-        ORDER BY s.id DESC
-    """)
-    List<SocioEntity> search(
-            @Param("disciplinaId") Long disciplinaId,
-            @Param("categoria") String categoria,
-            @Param("qLower") String qLower,
-            @Param("qRaw") String qRaw
-    );
+  @EntityGraph(attributePaths = { "socioDisciplinas", "socioDisciplinas.disciplina",
+      "socioDisciplinas.arancelDisciplina" })
+  @Query("""
+          SELECT DISTINCT s
+          FROM SocioEntity s
+          LEFT JOIN s.socioDisciplinas sd
+          LEFT JOIN sd.arancelDisciplina ad
+          WHERE (:disciplinaId IS NULL OR (sd.activo = true AND sd.disciplina.id = :disciplinaId))
+            AND (:categoria IS NULL OR (sd.activo = true AND ad.categoria = :categoria))
+            AND (
+                  :q IS NULL
+                  OR LOWER(s.apellido) LIKE CONCAT('%', CAST(:q AS string), '%')
+                  OR LOWER(s.nombre) LIKE CONCAT('%', CAST(:q AS string), '%')
+                  OR s.dni LIKE CONCAT('%', CAST(:q AS string), '%')
+            )
+          ORDER BY s.id DESC
+      """)
+  List<SocioEntity> search(
+      @Param("disciplinaId") Long disciplinaId,
+      @Param("categoria") String categoria,
+      @Param("q") String q);
 
-    long countByDisciplinaId(Long disciplinaId);
+  @EntityGraph(attributePaths = { "socioDisciplinas", "socioDisciplinas.disciplina",
+      "socioDisciplinas.arancelDisciplina" })
+  @Query("""
+                      SELECT DISTINCT s
+                      FROM SocioEntity s
+                      LEFT JOIN s.socioDisciplinas sd
+                      LEFT JOIN sd.arancelDisciplina ad
+                      WHERE (:disciplinaId IS NULL OR (sd.activo = true AND sd.disciplina.id = :disciplinaId))
+                        AND (:activo IS NULL OR s.activo = :activo)
+                        AND (:categoria IS NULL OR (sd.activo = true AND ad.categoria = :categoria))
+                       AND (
+          :q IS NULL
+          OR LOWER(s.apellido) LIKE CONCAT('%', CAST(:q AS string), '%')
+          OR LOWER(s.nombre) LIKE CONCAT('%', CAST(:q AS string), '%')
+          OR s.dni LIKE CONCAT('%', CAST(:q AS string), '%')
+      )
+                      ORDER BY s.apellido ASC, s.nombre ASC
+                  """)
+  List<SocioEntity> searchDashboard(
+      @Param("disciplinaId") Long disciplinaId,
+      @Param("activo") Boolean activo,
+      @Param("categoria") String categoria,
+      @Param("q") String q);
 
-    @Query("""
-        SELECT COUNT(s)
-        FROM SocioEntity s
-        WHERE s.vigenciaHasta IS NOT NULL
-          AND s.vigenciaHasta >= :hoy
-    """)
-    long countAlDia(@Param("hoy") LocalDate hoy);
+  @Query("""
+          SELECT COUNT(DISTINCT s.id)
+          FROM SocioEntity s
+          LEFT JOIN s.socioDisciplinas sd
+          WHERE sd.activo = true
+            AND sd.disciplina.id = :disciplinaId
+      """)
+  long countByDisciplinaId(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("""
-        SELECT COUNT(s)
-        FROM SocioEntity s
-        WHERE s.vigenciaHasta IS NULL
-           OR s.vigenciaHasta < :hoy
-    """)
-    long countDebe(@Param("hoy") LocalDate hoy);
+  @Query("""
+          SELECT COUNT(s)
+          FROM SocioEntity s
+          WHERE s.activo = true
+      """)
+  long countActivos();
 
-    @Query("""
-        SELECT COUNT(s)
-        FROM SocioEntity s
-        WHERE s.activo = true
-    """)
-    long countActivos();
-
-    @Query("""
-        SELECT COUNT(s)
-        FROM SocioEntity s
-        WHERE s.activo = false
-    """)
-    long countInactivos();
-
-    @Query("""
-        SELECT s
-        FROM SocioEntity s
-        LEFT JOIN s.arancelDisciplina ad
-        WHERE (:disciplinaId IS NULL OR s.disciplina.id = :disciplinaId)
-          AND (:activo IS NULL OR s.activo = :activo)
-          AND (:categoria IS NULL OR ad.categoria = cast(:categoria as string))
-          AND (
-            :qLower IS NULL OR
-            lower(s.apellido) LIKE concat('%', cast(:qLower as string), '%') OR
-            lower(s.nombre) LIKE concat('%', cast(:qLower as string), '%') OR
-            s.dni LIKE concat('%', cast(:qRaw as string), '%')
-          )
-        ORDER BY s.apellido ASC, s.nombre ASC
-    """)
-    List<SocioEntity> searchDashboard(
-            @Param("disciplinaId") Long disciplinaId,
-            @Param("activo") Boolean activo,
-            @Param("categoria") String categoria,
-            @Param("qLower") String qLower,
-            @Param("qRaw") String qRaw
-    );
+  @Query("""
+          SELECT COUNT(s)
+          FROM SocioEntity s
+          WHERE s.activo = false
+      """)
+  long countInactivos();
 }

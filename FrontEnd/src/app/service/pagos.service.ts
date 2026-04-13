@@ -22,6 +22,13 @@ export class PagosService {
   getArancelesPorDisciplina(disciplinaId: number) {
     return this.http.get<any>(`${this.base}/api/admin/disciplinas/${disciplinaId}/aranceles`);
   }
+
+  anularPago(pagoId: number, motivo?: string) {
+    return this.http.patch<any>(`${this.base}/api/admin/pagos/${pagoId}/anular`, {
+      motivo: motivo ?? '',
+    });
+  }
+
   descargarComprobante(pagoId: number) {
     return this.http.get(`${this.base}/api/admin/pagos/${pagoId}/comprobante`, {
       responseType: 'blob',

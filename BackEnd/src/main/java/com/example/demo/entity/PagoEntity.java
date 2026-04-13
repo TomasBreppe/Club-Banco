@@ -70,4 +70,23 @@ public class PagoEntity {
 
     @Column(name = "mp_status", length = 30)
     private String mpStatus;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "socio_disciplina_id")
+    private SocioDisciplinaEntity socioDisciplina;
+
+    @Column(name = "anulado", nullable = false)
+    @Builder.Default
+    private Boolean anulado = false;
+
+    @Column(name = "fecha_anulacion")
+    private LocalDateTime fechaAnulacion;
+
+    @Column(name = "motivo_anulacion", length = 255)
+    private String motivoAnulacion;
+
+    @PrePersist
+    public void prePersist() {
+        if (anulado == null) anulado = false;
+    }
 }

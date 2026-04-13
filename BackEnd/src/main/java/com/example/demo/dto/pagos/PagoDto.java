@@ -29,6 +29,10 @@ public class PagoDto {
     private String observacion;
     private LocalDateTime fechaPago;
 
+    private Boolean anulado;
+    private LocalDateTime fechaAnulacion;
+    private String motivoAnulacion;
+    
     private String mpPaymentId;
     private String mpStatus;
 }

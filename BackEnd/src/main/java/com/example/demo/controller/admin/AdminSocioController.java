@@ -1,6 +1,7 @@
 package com.example.demo.controller.admin;
 
 import com.example.demo.config.BaseResponse;
+import com.example.demo.dto.socio.SocioAgregarDisciplinaDto;
 import com.example.demo.dto.socio.SocioCreateDto;
 import com.example.demo.dto.socio.SocioDto;
 import com.example.demo.dto.socio.SocioResumenDto;
@@ -44,5 +45,12 @@ public class AdminSocioController {
             @PathVariable Long id,
             @RequestParam Boolean valor) {
         return socioService.cambiarActivo(id, valor);
+    }
+
+    @PostMapping("/{id}/disciplinas")
+    public BaseResponse<SocioDto> agregarDisciplina(
+            @PathVariable Long id,
+            @RequestBody SocioAgregarDisciplinaDto dto) {
+        return socioService.agregarDisciplina(id, dto);
     }
 }

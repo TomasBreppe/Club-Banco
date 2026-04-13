@@ -8,12 +8,14 @@ import com.example.demo.dto.deuda.DeudaResponseDto;
 import com.example.demo.dto.pagos.PagoDto;
 import com.example.demo.dto.pagos.PagoManualRequestDto;
 import com.example.demo.dto.pagos.PagoManualResponseDto;
+import com.example.demo.dto.socio.SocioDisciplinaResumenDto;
 import com.example.demo.dto.socio.SocioResumenDto;
 import com.example.demo.entity.*;
 import com.example.demo.repository.ArancelDisciplinaRepository;
 import com.example.demo.repository.CuotaDisciplinaRepository;
 import com.example.demo.repository.DisciplinaRepository;
 import com.example.demo.repository.PagoRepository;
+import com.example.demo.repository.SocioDisciplinaRepository;
 import com.example.demo.repository.SocioRepository;
 import com.example.demo.repository.UsuarioRepository;
 import com.example.demo.service.FinanzasService;
@@ -54,6 +56,7 @@ public class FinanzasServiceImpl implements FinanzasService {
     private final CuotaDisciplinaRepository cuotaDisciplinaRepository;
     private final ArancelDisciplinaRepository arancelDisciplinaRepository;
     private final DisciplinaRepository disciplinaRepository;
+    private final SocioDisciplinaRepository socioDisciplinaRepository;
 
     private static final YearMonth PERIODO_INICIO_SISTEMA = YearMonth.of(2026, 4);
     private static final DateTimeFormatter YYYY_MM = DateTimeFormatter.ofPattern("yyyy-MM");
@@ -72,16 +75,35 @@ public class FinanzasServiceImpl implements FinanzasService {
             return new BaseResponse<>("El socio está inactivo", 400, null);
         }
 
-        if (socio.getDisciplina() == null) {
-            return new BaseResponse<>("El socio no tiene disciplina asociada", 400, null);
+        SocioDisciplinaEntity socioDisciplina = socioDisciplinaRepository
+                .findFirstBySocio_IdAndActivoTrueOrderByIdAsc(socioId)
+                .orElse(null);
+
+        if (socioDisciplina == null) {
+            return new BaseResponse<>("El socio no tiene disciplina activa asociada", 400, null);
         }
 
-        if (socio.getArancelDisciplina() == null) {
-            return new BaseResponse<>("El socio no tiene categoría/arancel asociado", 400, null);
+        return new BaseResponse<>("Deuda calculada", 200, calcularDeudaPorDisciplina(socio, socioDisciplina));
+    }
+
+    private DeudaResponseDto calcularDeudaPorDisciplina(SocioEntity socio, SocioDisciplinaEntity socioDisciplina) {
+
+        if (socioDisciplina.getDisciplina() == null) {
+            throw new IllegalArgumentException("La relación socio-disciplina no tiene disciplina asociada");
         }
 
-        Long disciplinaId = socio.getDisciplina().getId();
-        String categoria = socio.getArancelDisciplina().getCategoria();
+        if (socioDisciplina.getArancelDisciplina() == null) {
+            throw new IllegalArgumentException("La relación socio-disciplina no tiene categoría/arancel asociado");
+        }
+
+        List<SocioDisciplinaEntity> relacionesActivas = socioDisciplinaRepository
+                .findBySocio_IdAndActivoTrue(socio.getId());
+
+        Long principalId = relacionesActivas.isEmpty() ? null : relacionesActivas.get(0).getId();
+        boolean esPrimeraDisciplina = Objects.equals(socioDisciplina.getId(), principalId);
+
+        Long disciplinaId = socioDisciplina.getDisciplina().getId();
+        String categoria = socioDisciplina.getArancelDisciplina().getCategoria();
 
         ArancelDisciplinaEntity arancelActual = arancelDisciplinaRepository
                 .findTopByDisciplina_IdAndCategoriaIgnoreCaseAndVigenteDesdeLessThanEqualOrderByVigenteDesdeDesc(
@@ -91,7 +113,7 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .orElse(null);
 
         if (arancelActual == null) {
-            return new BaseResponse<>("No hay arancel vigente para la categoría del socio", 400, null);
+            throw new IllegalArgumentException("No hay arancel vigente para la categoría de la disciplina");
         }
 
         ArancelDisciplinaEntity primerArancel = arancelDisciplinaRepository
@@ -101,16 +123,24 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .orElse(null);
 
         if (primerArancel == null) {
-            return new BaseResponse<>("No hay historial de aranceles para la categoría del socio", 400, null);
+            throw new IllegalArgumentException("No hay historial de aranceles para la categoría de la disciplina");
         }
 
-        boolean inscripcionPaga = Boolean.TRUE.equals(socio.getInscripcionPagada())
-                || pagoRepository.existsBySocio_IdAndConcepto(socioId, "INSCRIPCION");
+        boolean inscripcionPaga;
+
+        if (esPrimeraDisciplina) {
+            inscripcionPaga = Boolean.TRUE.equals(socioDisciplina.getInscripcionPagada())
+                    || pagoRepository.existsBySocioDisciplina_IdAndConceptoAndAnuladoFalse(
+                            socioDisciplina.getId(),
+                            "INSCRIPCION");
+        } else {
+            inscripcionPaga = true;
+        }
 
         YearMonth start = Collections.max(List.of(
                 PERIODO_INICIO_SISTEMA,
                 YearMonth.from(primerArancel.getVigenteDesde()),
-                YearMonth.from(socio.getCreatedAt().toLocalDate())));
+                YearMonth.from(socioDisciplina.getFechaAlta().toLocalDate())));
 
         YearMonth end = YearMonth.from(LocalDate.now());
 
@@ -129,10 +159,14 @@ public class FinanzasServiceImpl implements FinanzasService {
                     .map(ym -> ym.format(YYYY_MM))
                     .toList();
 
-            List<PagoEntity> pagos = pagoRepository.findBySocio_IdAndConceptoAndPeriodoIn(
-                    socioId,
-                    "CUOTA_MENSUAL",
-                    periodos);
+            List<PagoEntity> pagos = pagoRepository
+                    .findBySocioDisciplina_IdAndConceptoAndPeriodoIn(
+                            socioDisciplina.getId(),
+                            "CUOTA_MENSUAL",
+                            periodos)
+                    .stream()
+                    .filter(p -> !Boolean.TRUE.equals(p.getAnulado()))
+                    .toList();
 
             Set<String> periodosPagos = pagos.stream()
                     .map(PagoEntity::getPeriodo)
@@ -151,7 +185,7 @@ public class FinanzasServiceImpl implements FinanzasService {
                                         fechaPeriodo)
                                 .orElse(arancelActual);
 
-                        BigDecimal montoPeriodo = calcularMontoArancel(arancelPeriodo);
+                        BigDecimal montoPeriodo = calcularMontoArancelSegunOrden(arancelPeriodo, esPrimeraDisciplina);
 
                         return DeudaItemDto.builder()
                                 .periodo(p)
@@ -176,19 +210,17 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .filter(i -> !"INSCRIPCION".equals(i.getPeriodo()))
                 .count();
 
-        DeudaResponseDto resp = DeudaResponseDto.builder()
+        return DeudaResponseDto.builder()
                 .socioId(socio.getId())
                 .dni(socio.getDni())
                 .nombreCompleto(socio.getNombre() + " " + socio.getApellido())
-                .disciplina(socio.getDisciplina().getNombre())
-                .vigenciaHasta(socio.getVigenciaHasta())
-                .montoMensual(calcularMontoArancel(arancelActual))
+                .disciplina(socioDisciplina.getDisciplina().getNombre())
+                .vigenciaHasta(socioDisciplina.getVigenciaHasta())
+                .montoMensual(calcularMontoArancelSegunOrden(arancelActual, esPrimeraDisciplina))
                 .mesesAdeudados(mesesAdeudados)
                 .totalAdeudado(totalAdeudado)
                 .items(items)
                 .build();
-
-        return new BaseResponse<>("Deuda calculada", 200, resp);
     }
 
     @Override
@@ -213,6 +245,22 @@ public class FinanzasServiceImpl implements FinanzasService {
             return new BaseResponse<>("Medio de pago inválido", 400, null);
         }
 
+        SocioDisciplinaEntity socioDisciplina;
+
+        if (dto.getDisciplinaId() != null) {
+            socioDisciplina = socioDisciplinaRepository
+                    .findBySocio_IdAndDisciplina_IdAndActivoTrue(dto.getSocioId(), dto.getDisciplinaId())
+                    .orElse(null);
+        } else {
+            socioDisciplina = socioDisciplinaRepository
+                    .findFirstBySocio_IdAndActivoTrueOrderByIdAsc(dto.getSocioId())
+                    .orElse(null);
+        }
+
+        if (socioDisciplina == null) {
+            return new BaseResponse<>("No se encontró una disciplina activa para el socio", 400, null);
+        }
+
         String periodo = dto.getPeriodo();
 
         if ("CUOTA_MENSUAL".equals(concepto)) {
@@ -229,23 +277,41 @@ public class FinanzasServiceImpl implements FinanzasService {
                         null);
             }
 
-            if (pagoRepository.existsBySocio_IdAndConceptoAndPeriodo(socio.getId(), "CUOTA_MENSUAL", periodo)) {
-                return new BaseResponse<>("La cuota de ese periodo ya está paga", 400, null);
+            if (pagoRepository.existsBySocioDisciplina_IdAndConceptoAndPeriodo(
+                    socioDisciplina.getId(),
+                    "CUOTA_MENSUAL",
+                    periodo)) {
+                return new BaseResponse<>("La cuota de ese periodo ya está paga para esa disciplina", 400, null);
             }
 
         } else if ("INSCRIPCION".equals(concepto)) {
-            boolean yaPagaInscripcion = Boolean.TRUE.equals(socio.getInscripcionPagada())
-                    || pagoRepository.existsBySocio_IdAndConcepto(socio.getId(), "INSCRIPCION");
+
+            List<SocioDisciplinaEntity> relacionesActivas = socioDisciplinaRepository
+                    .findBySocio_IdAndActivoTrue(dto.getSocioId());
+
+            Long principalId = relacionesActivas.isEmpty() ? null : relacionesActivas.get(0).getId();
+            boolean esPrimeraDisciplina = Objects.equals(socioDisciplina.getId(), principalId);
+
+            if (!esPrimeraDisciplina) {
+                return new BaseResponse<>("La inscripción solo se cobra en la disciplina principal", 400, null);
+            }
+
+            boolean yaPagaInscripcion = Boolean.TRUE.equals(socioDisciplina.getInscripcionPagada())
+                    || pagoRepository.existsBySocioDisciplina_IdAndConceptoAndAnuladoFalse(
+                            socioDisciplina.getId(),
+                            "INSCRIPCION");
 
             if (yaPagaInscripcion) {
-                return new BaseResponse<>("La inscripción ya fue pagada", 400, null);
+                return new BaseResponse<>("La inscripción ya fue pagada para esa disciplina", 400, null);
             }
+
             periodo = null;
+
         } else {
             return new BaseResponse<>("Concepto inválido", 400, null);
         }
 
-        DisciplinaEntity disciplina = socio.getDisciplina();
+        DisciplinaEntity disciplina = socioDisciplina.getDisciplina();
         ArancelDisciplinaEntity arancel = null;
 
         BigDecimal montoSocial = BigDecimal.ZERO;
@@ -255,7 +321,7 @@ public class FinanzasServiceImpl implements FinanzasService {
         String categoria = null;
 
         if ("CUOTA_MENSUAL".equals(concepto)) {
-            arancel = socio.getArancelDisciplina();
+            arancel = socioDisciplina.getArancelDisciplina();
 
             if (dto.getArancelDisciplinaId() != null) {
                 arancel = arancelDisciplinaRepository.findById(dto.getArancelDisciplinaId()).orElse(null);
@@ -265,13 +331,27 @@ public class FinanzasServiceImpl implements FinanzasService {
             }
 
             if (arancel == null) {
-                return new BaseResponse<>("El socio no tiene arancel asociado", 400, null);
+                return new BaseResponse<>("La disciplina del socio no tiene arancel asociado", 400, null);
             }
 
+            List<SocioDisciplinaEntity> relacionesActivas = socioDisciplinaRepository
+                    .findBySocio_IdAndActivoTrue(dto.getSocioId());
+
+            Long principalId = relacionesActivas.isEmpty() ? null : relacionesActivas.get(0).getId();
+            boolean esPrimeraDisciplina = Objects.equals(socioDisciplina.getId(), principalId);
+
             disciplina = arancel.getDisciplina();
-            montoSocial = safe(arancel.getMontoSocial());
-            montoDisciplina = safe(arancel.getMontoDeportivo());
-            montoPreparacionFisica = safe(arancel.getMontoPreparacionFisica());
+
+            if (esPrimeraDisciplina) {
+                montoSocial = safe(arancel.getMontoSocial());
+                montoDisciplina = safe(arancel.getMontoDeportivo());
+                montoPreparacionFisica = safe(arancel.getMontoPreparacionFisica());
+            } else {
+                montoSocial = BigDecimal.ZERO;
+                montoDisciplina = safe(arancel.getMontoDeportivo());
+                montoPreparacionFisica = safe(arancel.getMontoPreparacionFisica());
+            }
+
             montoTotal = montoSocial.add(montoDisciplina).add(montoPreparacionFisica);
             categoria = arancel.getCategoria();
 
@@ -291,6 +371,7 @@ public class FinanzasServiceImpl implements FinanzasService {
 
         PagoEntity pago = PagoEntity.builder()
                 .socio(socio)
+                .socioDisciplina(socioDisciplina)
                 .disciplina(disciplina)
                 .arancelDisciplina(arancel)
                 .concepto(concepto)
@@ -310,17 +391,17 @@ public class FinanzasServiceImpl implements FinanzasService {
         PagoEntity saved = pagoRepository.save(pago);
 
         if ("INSCRIPCION".equals(concepto)) {
-            socio.setInscripcionPagada(true);
-            socioRepository.save(socio);
+            socioDisciplina.setInscripcionPagada(true);
+            socioDisciplinaRepository.save(socioDisciplina);
         }
 
         if ("CUOTA_MENSUAL".equals(concepto) && periodo != null) {
             YearMonth ym = YearMonth.parse(periodo, YYYY_MM);
             LocalDate finMes = ym.atEndOfMonth();
 
-            if (socio.getVigenciaHasta() == null || socio.getVigenciaHasta().isBefore(finMes)) {
-                socio.setVigenciaHasta(finMes);
-                socioRepository.save(socio);
+            if (socioDisciplina.getVigenciaHasta() == null || socioDisciplina.getVigenciaHasta().isBefore(finMes)) {
+                socioDisciplina.setVigenciaHasta(finMes);
+                socioDisciplinaRepository.save(socioDisciplina);
             }
         }
 
@@ -392,8 +473,8 @@ public class FinanzasServiceImpl implements FinanzasService {
             return BaseResponse.bad("Socio no encontrado");
         }
 
-        var deudaResp = getDeudaBySocioId(socioId);
-        var deuda = deudaResp.getData();
+        List<SocioDisciplinaEntity> relaciones = socioDisciplinaRepository.findBySocio_IdAndActivoTrue(socioId);
+        SocioDisciplinaEntity principal = relaciones.isEmpty() ? null : relaciones.get(0);
 
         int lim = (limit == null || limit <= 0) ? 10 : Math.min(limit, 50);
 
@@ -411,20 +492,52 @@ public class FinanzasServiceImpl implements FinanzasService {
 
         var ultimos = pagos.stream().map(this::toPagoDto).toList();
 
+        List<SocioDisciplinaResumenDto> disciplinas = relaciones.stream()
+                .map(sd -> SocioDisciplinaResumenDto.builder()
+                        .socioDisciplinaId(sd.getId())
+                        .disciplinaId(sd.getDisciplina() != null ? sd.getDisciplina().getId() : null)
+                        .disciplinaNombre(sd.getDisciplina() != null ? sd.getDisciplina().getNombre() : null)
+                        .arancelDisciplinaId(
+                                sd.getArancelDisciplina() != null ? sd.getArancelDisciplina().getId() : null)
+                        .categoriaArancel(
+                                sd.getArancelDisciplina() != null ? sd.getArancelDisciplina().getCategoria() : null)
+                        .vigenciaHasta(sd.getVigenciaHasta())
+                        .inscripcionPagada(sd.getInscripcionPagada())
+                        .deuda(calcularDeudaPorDisciplina(socio, sd))
+                        .build())
+                .toList();
+
+        DeudaResponseDto deudaPrincipal = principal != null
+                ? calcularDeudaPorDisciplina(socio, principal)
+                : null;
+
         SocioResumenDto resumen = SocioResumenDto.builder()
                 .socioId(socio.getId())
                 .dni(socio.getDni())
                 .nombre(socio.getNombre())
                 .apellido(socio.getApellido())
+                .celular(socio.getCelular())
                 .activo(socio.getActivo())
-                .vigenciaHasta(socio.getVigenciaHasta())
-                .disciplinaId(socio.getDisciplina() != null ? socio.getDisciplina().getId() : null)
-                .disciplinaNombre(socio.getDisciplina() != null ? socio.getDisciplina().getNombre() : null)
-                .arancelDisciplinaId(socio.getArancelDisciplina() != null ? socio.getArancelDisciplina().getId() : null)
+                .vigenciaHasta(principal != null ? principal.getVigenciaHasta() : null)
+                .disciplinaId(
+                        principal != null && principal.getDisciplina() != null
+                                ? principal.getDisciplina().getId()
+                                : null)
+                .disciplinaNombre(
+                        principal != null && principal.getDisciplina() != null
+                                ? principal.getDisciplina().getNombre()
+                                : null)
+                .arancelDisciplinaId(
+                        principal != null && principal.getArancelDisciplina() != null
+                                ? principal.getArancelDisciplina().getId()
+                                : null)
                 .categoriaArancel(
-                        socio.getArancelDisciplina() != null ? socio.getArancelDisciplina().getCategoria() : null)
-                .deuda(deuda)
+                        principal != null && principal.getArancelDisciplina() != null
+                                ? principal.getArancelDisciplina().getCategoria()
+                                : null)
+                .deuda(deudaPrincipal)
                 .ultimosPagos(ultimos)
+                .disciplinas(disciplinas)
                 .build();
 
         return BaseResponse.ok("Resumen OK", resumen);
@@ -672,6 +785,9 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .fechaPago(p.getFechaPago())
                 .mpPaymentId(p.getMpPaymentId())
                 .mpStatus(p.getMpStatus())
+                .anulado(p.getAnulado())
+                .fechaAnulacion(p.getFechaAnulacion())
+                .motivoAnulacion(p.getMotivoAnulacion())
                 .build();
     }
 
@@ -692,6 +808,61 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .vigenteDesde(a.getVigenteDesde())
                 .activa(a.getActiva())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public BaseResponse<Void> anularPago(Long pagoId, String motivo) {
+        PagoEntity pago = pagoRepository.findById(pagoId).orElse(null);
+        if (pago == null) {
+            return new BaseResponse<>("Pago no encontrado", 404, null);
+        }
+
+        if (Boolean.TRUE.equals(pago.getAnulado())) {
+            return new BaseResponse<>("El pago ya está anulado", 400, null);
+        }
+
+        pago.setAnulado(true);
+        pago.setFechaAnulacion(LocalDateTime.now());
+        pago.setMotivoAnulacion(
+                motivo != null && !motivo.trim().isBlank()
+                        ? motivo.trim()
+                        : "Anulado manualmente");
+
+        pagoRepository.save(pago);
+
+        SocioDisciplinaEntity sd = pago.getSocioDisciplina();
+        if (sd != null) {
+            recalcularEstadoSocioDisciplina(sd);
+        }
+
+        return new BaseResponse<>("Pago anulado correctamente", 200, null);
+    }
+
+    private void recalcularEstadoSocioDisciplina(SocioDisciplinaEntity sd) {
+        Long socioDisciplinaId = sd.getId();
+
+        boolean tieneInscripcionVigente = pagoRepository
+                .existsBySocioDisciplina_IdAndConceptoAndAnuladoFalse(socioDisciplinaId, "INSCRIPCION");
+
+        sd.setInscripcionPagada(tieneInscripcionVigente);
+
+        var cuotas = pagoRepository.findCuotasNoAnuladasBySocioDisciplina(socioDisciplinaId);
+
+        String ultimoPeriodo = cuotas.stream()
+                .map(PagoEntity::getPeriodo)
+                .filter(p -> p != null && !p.isBlank())
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+
+        if (ultimoPeriodo == null) {
+            sd.setVigenciaHasta(null);
+        } else {
+            YearMonth ym = YearMonth.parse(ultimoPeriodo);
+            sd.setVigenciaHasta(ym.atEndOfMonth());
+        }
+
+        socioDisciplinaRepository.save(sd);
     }
 
     private void addRow(PdfPTable table, String label, String value, Font labelFont, Font valueFont) {
@@ -718,6 +889,21 @@ public class FinanzasServiceImpl implements FinanzasService {
 
         return safe(a.getMontoSocial())
                 .add(safe(a.getMontoDeportivo()))
+                .add(safe(a.getMontoPreparacionFisica()));
+    }
+
+    private BigDecimal calcularMontoArancelSegunOrden(ArancelDisciplinaEntity a, boolean esPrimeraDisciplina) {
+        if (a == null) {
+            return BigDecimal.ZERO;
+        }
+
+        if (esPrimeraDisciplina) {
+            return safe(a.getMontoSocial())
+                    .add(safe(a.getMontoDeportivo()))
+                    .add(safe(a.getMontoPreparacionFisica()));
+        }
+
+        return safe(a.getMontoDeportivo())
                 .add(safe(a.getMontoPreparacionFisica()));
     }
 

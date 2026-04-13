@@ -14,10 +14,12 @@ public class PagoDashboardMapper {
                     (p.getSocio().getApellido() != null ? p.getSocio().getApellido() : "")
                             + ", " +
                             (p.getSocio().getNombre() != null ? p.getSocio().getNombre() : "");
+        }
 
-            if (p.getSocio().getDisciplina() != null) {
-                disciplinaNombre = p.getSocio().getDisciplina().getNombre();
-            }
+        if (p.getDisciplina() != null) {
+            disciplinaNombre = p.getDisciplina().getNombre();
+        } else if (p.getSocioDisciplina() != null && p.getSocioDisciplina().getDisciplina() != null) {
+            disciplinaNombre = p.getSocioDisciplina().getDisciplina().getNombre();
         }
 
         return PagoDashboardDto.builder()

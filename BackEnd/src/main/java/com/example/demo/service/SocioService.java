@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.config.BaseResponse;
+import com.example.demo.dto.socio.SocioAgregarDisciplinaDto;
 import com.example.demo.dto.socio.SocioCreateDto;
 import com.example.demo.dto.socio.SocioDto;
 import com.example.demo.dto.socio.SocioResumenDto;
@@ -19,4 +20,6 @@ public interface SocioService {
     BaseResponse<SocioResumenDto> resumen(Long socioId);
 
     BaseResponse<SocioDto> cambiarActivo(Long socioId, Boolean activo);
+
+    BaseResponse<SocioDto> agregarDisciplina(Long socioId, SocioAgregarDisciplinaDto dto);
 }

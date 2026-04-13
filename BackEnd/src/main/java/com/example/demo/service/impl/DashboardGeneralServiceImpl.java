@@ -3,6 +3,7 @@ package com.example.demo.service.impl;
 import com.example.demo.config.BaseResponse;
 import com.example.demo.dto.dashboard.DashboardGeneralDto;
 import com.example.demo.repository.GastoRepository;
+import com.example.demo.repository.IngresoManualRepository;
 import com.example.demo.repository.PagoRepository;
 import com.example.demo.repository.SocioRepository;
 import com.example.demo.service.DashboardGeneralService;
@@ -19,6 +20,7 @@ public class DashboardGeneralServiceImpl implements DashboardGeneralService {
     private final SocioRepository socioRepository;
     private final PagoRepository pagoRepository;
     private final GastoRepository gastoRepository;
+    private final IngresoManualRepository ingresoManualRepository;
 
     @Override
     public BaseResponse<DashboardGeneralDto> obtenerDashboardGeneral() {
@@ -26,9 +28,23 @@ public class DashboardGeneralServiceImpl implements DashboardGeneralService {
         int anio = hoy.getYear();
         int mes = hoy.getMonthValue();
 
+        LocalDate fechaDesde = hoy.withDayOfMonth(1);
+        LocalDate fechaHasta = hoy.withDayOfMonth(hoy.lengthOfMonth());
+
         Long sociosActivos = socioRepository.countActivos();
-        BigDecimal ingresosMes = pagoRepository.totalMes(anio, mes);
-        BigDecimal gastosMes = gastoRepository.totalMes(anio, mes);
+
+        BigDecimal pagosMes = nvl(pagoRepository.totalMes(anio, mes));
+        BigDecimal ingresosManualesMes = nvl(
+                ingresoManualRepository.totalDashboardFiltrado(
+                        null,
+                        fechaDesde,
+                        fechaHasta,
+                        ""
+                )
+        );
+
+        BigDecimal ingresosMes = pagosMes.add(ingresosManualesMes);
+        BigDecimal gastosMes = nvl(gastoRepository.totalMes(anio, mes));
         BigDecimal balanceMes = ingresosMes.subtract(gastosMes);
 
         DashboardGeneralDto dto = DashboardGeneralDto.builder()
@@ -39,5 +55,9 @@ public class DashboardGeneralServiceImpl implements DashboardGeneralService {
                 .build();
 
         return new BaseResponse<>("Dashboard general obtenido correctamente", 200, dto);
+    }
+
+    private BigDecimal nvl(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 }

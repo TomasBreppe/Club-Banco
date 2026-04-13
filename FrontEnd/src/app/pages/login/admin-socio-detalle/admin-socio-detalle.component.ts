@@ -2,16 +2,46 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
 
 import { SociosService } from '../../../service/socio.service';
-import { SocioResumenDto } from '../../../features/socios/socio-resumen.models';
 import { AdminStatsService } from '../../../core/auth/stats/admin-stats.service';
 import { PagosService } from '../../../service/pagos.service';
 import {
   PagoManualRequest,
   ArancelDisciplinaDto,
+  PagoDto,
 } from '../../../features/pagos/pago-manual.models';
+import { SocioResumenDto, DeudaResponseDto } from '../../../features/socios/socio-resumen.models';
+import { environment } from '../../../../environments/environment';
+
+interface SocioDisciplinaResumenVm {
+  socioDisciplinaId?: number | null;
+  disciplinaId: number;
+  disciplinaNombre: string;
+  arancelDisciplinaId?: number | null;
+  categoriaArancel?: string | null;
+  vigenciaHasta?: string | null;
+  inscripcionPagada?: boolean | null;
+  deuda: DeudaResponseDto | null;
+}
+
+interface SocioResumenMultiDto extends SocioResumenDto {
+  disciplinas?: SocioDisciplinaResumenVm[];
+}
+
+interface DisciplinaDto {
+  id: number;
+  nombre: string;
+  activa?: boolean;
+}
+
+interface AgregarDisciplinaForm {
+  disciplinaId: number | null;
+  arancelDisciplinaId: number | null;
+  inscripcionPagada: boolean;
+}
 
 @Component({
   standalone: true,
@@ -23,27 +53,31 @@ import {
 export class AdminSocioDetalleComponent implements OnInit {
   loading = false;
   error: string | null = null;
-  data: SocioResumenDto | null = null;
+  data: SocioResumenMultiDto | null = null;
   ultimoPagoRegistradoId: number | null = null;
+  anulandoPagoId: number | null = null;
   pagoError: string | null = null;
   pagoOk: string | null = null;
 
-  aranceles: ArancelDisciplinaDto[] = [];
-  arancelSeleccionado: ArancelDisciplinaDto | null = null;
+  pagoErrorPorDisciplina: Record<number, string | null> = {};
+  pagoOkPorDisciplina: Record<number, string | null> = {};
+  arancelesPorDisciplina: Record<number, ArancelDisciplinaDto[]> = {};
+  arancelSeleccionadoPorDisciplina: Record<number, ArancelDisciplinaDto | null> = {};
+  pagoForms: Record<number, PagoManualRequest> = {};
 
-  pago: PagoManualRequest = {
-    socioId: 0,
-    concepto: 'CUOTA_MENSUAL',
-    periodo: '',
+  // NUEVO: agregar disciplina
+  mostrarAgregarDisciplina = false;
+  agregarDisciplinaLoading = false;
+  agregarDisciplinaError: string | null = null;
+  agregarDisciplinaOk: string | null = null;
+
+  disciplinasDisponibles: DisciplinaDto[] = [];
+  arancelesNuevaDisciplina: ArancelDisciplinaDto[] = [];
+
+  agregarDisciplinaForm: AgregarDisciplinaForm = {
     disciplinaId: null,
     arancelDisciplinaId: null,
-    categoria: null,
-    montoTotal: 0,
-    montoSocial: 0,
-    montoDisciplina: 0,
-    montoPreparacionFisica: 0,
-    medio: 'EFECTIVO',
-    observacion: '',
+    inscripcionPagada: false,
   };
 
   constructor(
@@ -52,6 +86,7 @@ export class AdminSocioDetalleComponent implements OnInit {
     private pagosApi: PagosService,
     private cdr: ChangeDetectorRef,
     private statsSvc: AdminStatsService,
+    private http: HttpClient,
   ) {}
 
   ngOnInit(): void {
@@ -72,10 +107,22 @@ export class AdminSocioDetalleComponent implements OnInit {
     });
   }
 
+  esDisciplinaPrincipal(d: SocioDisciplinaResumenVm): boolean {
+    if (!this.data?.disciplinas?.length) return true;
+    return this.data.disciplinas[0]?.disciplinaId === d.disciplinaId;
+  }
+
   cargar(id: number): void {
     this.loading = true;
     this.error = null;
     this.data = null;
+    this.pagoError = null;
+    this.pagoOk = null;
+    this.pagoErrorPorDisciplina = {};
+    this.pagoOkPorDisciplina = {};
+    this.pagoForms = {};
+    this.arancelesPorDisciplina = {};
+    this.arancelSeleccionadoPorDisciplina = {};
     this.cdr.detectChanges();
 
     this.api
@@ -88,19 +135,41 @@ export class AdminSocioDetalleComponent implements OnInit {
       )
       .subscribe({
         next: (res) => {
-          this.data = res?.data ?? null;
+          const incoming = (res?.data ?? null) as SocioResumenMultiDto | null;
 
-          if (!this.data) {
+          if (!incoming) {
+            this.data = null;
             this.error = 'No se encontraron datos del socio';
             this.cdr.detectChanges();
             return;
           }
 
-          this.pago.socioId = this.data.socioId;
-          this.pago.disciplinaId = this.data.disciplinaId ?? null;
+          if (!incoming.disciplinas || incoming.disciplinas.length === 0) {
+            incoming.disciplinas =
+              incoming.disciplinaId != null
+                ? [
+                    {
+                      socioDisciplinaId: null,
+                      disciplinaId: incoming.disciplinaId,
+                      disciplinaNombre: incoming.disciplinaNombre ?? '-',
+                      arancelDisciplinaId: incoming.arancelDisciplinaId ?? null,
+                      categoriaArancel: incoming.categoriaArancel ?? null,
+                      vigenciaHasta: incoming.vigenciaHasta ?? null,
+                      inscripcionPagada: null,
+                      deuda: incoming.deuda ?? null,
+                    },
+                  ]
+                : [];
+          }
 
-          this.cargarAranceles();
-          this.autocompletarPago();
+          this.data = incoming;
+
+          const disciplinas = this.data.disciplinas ?? [];
+          for (const d of disciplinas) {
+            this.inicializarPagoForm(d);
+            this.cargarArancelesPorDisciplina(d);
+          }
+
           this.cdr.detectChanges();
         },
         error: (err) => {
@@ -114,180 +183,16 @@ export class AdminSocioDetalleComponent implements OnInit {
       });
   }
 
-  cargarAranceles(): void {
-    const disciplinaId = this.data?.disciplinaId;
-    if (!disciplinaId) {
-      this.aranceles = [];
-      this.arancelSeleccionado = null;
-      return;
-    }
-
-    this.pagosApi.getArancelesPorDisciplina(disciplinaId).subscribe({
-      next: (res) => {
-        this.aranceles = res?.data ?? [];
-
-        if (this.aranceles.length > 0) {
-          const arancelSocio = this.aranceles.find((a) => a.id === this.data?.arancelDisciplinaId);
-          const seleccionado = arancelSocio ?? this.aranceles[0];
-
-          this.pago.arancelDisciplinaId = seleccionado.id;
-          this.onArancelChange();
-        } else {
-          this.arancelSeleccionado = null;
-        }
-
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.aranceles = [];
-        this.arancelSeleccionado = null;
-        this.cdr.detectChanges();
-      },
-    });
-  }
-
-  private cargarArancelesParaCuota(): void {
-    if (!this.aranceles.length) return;
-
-    const arancelSocio = this.aranceles.find((a) => a.id === this.data?.arancelDisciplinaId);
-    const seleccionado = arancelSocio ?? this.aranceles[0] ?? null;
-
-    if (!seleccionado) {
-      this.arancelSeleccionado = null;
-      this.pago.arancelDisciplinaId = null;
-      this.pago.categoria = null;
-      this.pago.montoSocial = 0;
-      this.pago.montoDisciplina = 0;
-      this.pago.montoPreparacionFisica = 0;
-      this.pago.montoTotal = 0;
-      return;
-    }
-
-    this.pago.arancelDisciplinaId = seleccionado.id;
-    this.onArancelChange();
-  }
-
-  onConceptoChange(): void {
-    if (this.pago.concepto === 'INSCRIPCION') {
-      this.arancelSeleccionado = null;
-      this.pago.periodo = null;
-      this.pago.arancelDisciplinaId = null;
-      this.pago.categoria = null;
-      this.pago.montoSocial = 0;
-      this.pago.montoDisciplina = 0;
-      this.pago.montoPreparacionFisica = 0;
-      this.pago.montoTotal = 0;
-      this.cdr.detectChanges();
-      return;
-    }
-
-    this.cargarArancelesParaCuota();
-    this.autocompletarPago();
-    this.cdr.detectChanges();
-  }
-
-  onArancelChange(): void {
-    if (this.pago.concepto === 'INSCRIPCION') {
-      this.arancelSeleccionado = null;
-      this.pago.arancelDisciplinaId = null;
-      this.pago.categoria = null;
-      this.pago.montoSocial = 0;
-      this.pago.montoDisciplina = 0;
-      this.pago.montoPreparacionFisica = 0;
-      return;
-    }
-
-    const id = Number(this.pago.arancelDisciplinaId);
-    this.arancelSeleccionado = this.aranceles.find((a) => a.id === id) ?? null;
-
-    if (!this.arancelSeleccionado) {
-      this.pago.categoria = null;
-      this.pago.montoSocial = 0;
-      this.pago.montoDisciplina = 0;
-      this.pago.montoPreparacionFisica = 0;
-      this.pago.montoTotal = 0;
-      return;
-    }
-
-    this.pago.categoria = this.arancelSeleccionado.categoria;
-    this.pago.montoSocial = Number(this.arancelSeleccionado.montoSocial ?? 0);
-    this.pago.montoDisciplina = Number(this.arancelSeleccionado.montoDeportivo ?? 0);
-    this.pago.montoPreparacionFisica = Number(this.arancelSeleccionado.montoPreparacionFisica ?? 0);
-    this.recalcularMontoTotal();
-
-    if (
-      this.pago.concepto === 'CUOTA_MENSUAL' &&
-      !this.data?.deuda?.items?.some((i) => !i.pagado && i.periodo !== 'INSCRIPCION')
-    ) {
-      this.autocompletarPago();
-    }
-  }
-
-  recalcularMontoTotal(): void {
-    const total =
-      Number(this.pago.montoSocial ?? 0) +
-      Number(this.pago.montoDisciplina ?? 0) +
-      Number(this.pago.montoPreparacionFisica ?? 0);
-
-    this.pago.montoTotal = total;
-  }
-
-  autocompletarPago(): void {
+  private inicializarPagoForm(d: SocioDisciplinaResumenVm): void {
     if (!this.data) return;
 
-    const deuda = this.data.deuda;
-
-    if (this.pago.concepto === 'CUOTA_MENSUAL') {
-      const primerAdeudado = deuda?.items?.find((i) => !i.pagado && i.periodo !== 'INSCRIPCION');
-
-      if (primerAdeudado) {
-        this.pago.periodo = primerAdeudado.periodo;
-      } else {
-        const actual = this.periodoActual();
-
-        if (this.arancelSeleccionado?.vigenteDesde) {
-          const periodoArancel = this.periodoDesdeFecha(this.arancelSeleccionado.vigenteDesde);
-          this.pago.periodo = this.maxPeriodo(actual, periodoArancel);
-        } else {
-          this.pago.periodo = actual;
-        }
-      }
-
-      if (this.arancelSeleccionado) {
-        this.pago.categoria = this.arancelSeleccionado.categoria;
-        this.pago.montoSocial = Number(this.arancelSeleccionado.montoSocial ?? 0);
-        this.pago.montoDisciplina = Number(this.arancelSeleccionado.montoDeportivo ?? 0);
-        this.pago.montoPreparacionFisica = Number(
-          this.arancelSeleccionado.montoPreparacionFisica ?? 0,
-        );
-        this.recalcularMontoTotal();
-      }
-
-      return;
-    }
-
-    if (this.pago.concepto === 'INSCRIPCION') {
-      this.pago.periodo = null;
-      this.pago.arancelDisciplinaId = null;
-      this.pago.categoria = null;
-      this.pago.montoSocial = 0;
-      this.pago.montoDisciplina = 0;
-      this.pago.montoPreparacionFisica = 0;
-      return;
-    }
-  }
-
-  resetPagoForm(): void {
-    this.pagoError = null;
-    this.pagoOk = null;
-
-    this.pago = {
-      socioId: this.data?.socioId ?? 0,
+    this.pagoForms[d.disciplinaId] = {
+      socioId: this.data.socioId,
       concepto: 'CUOTA_MENSUAL',
       periodo: '',
-      disciplinaId: this.data?.disciplinaId ?? null,
-      arancelDisciplinaId: this.aranceles[0]?.id ?? null,
-      categoria: this.aranceles[0]?.categoria ?? null,
+      disciplinaId: d.disciplinaId,
+      arancelDisciplinaId: d.arancelDisciplinaId ?? null,
+      categoria: d.categoriaArancel ?? null,
       montoTotal: 0,
       montoSocial: 0,
       montoDisciplina: 0,
@@ -296,66 +201,446 @@ export class AdminSocioDetalleComponent implements OnInit {
       observacion: '',
     };
 
-    this.autocompletarPago();
-    this.onArancelChange();
+    this.pagoErrorPorDisciplina[d.disciplinaId] = null;
+    this.pagoOkPorDisciplina[d.disciplinaId] = null;
+    this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = null;
   }
 
-  registrarPago(): void {
-    this.pagoError = null;
-    this.pagoOk = null;
+  private cargarArancelesPorDisciplina(d: SocioDisciplinaResumenVm): void {
+    this.pagosApi.getArancelesPorDisciplina(d.disciplinaId).subscribe({
+      next: (res) => {
+        const aranceles: ArancelDisciplinaDto[] = res?.data ?? [];
+        this.arancelesPorDisciplina[d.disciplinaId] = aranceles;
+
+        const form = this.pagoForms[d.disciplinaId];
+        if (!form) return;
+
+        const seleccionado =
+          aranceles.find((a: ArancelDisciplinaDto) => a.id === d.arancelDisciplinaId) ??
+          aranceles[0] ??
+          null;
+
+        if (seleccionado) {
+          form.arancelDisciplinaId = seleccionado.id;
+          this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = seleccionado;
+          this.onArancelChangeDisciplina(d);
+        } else {
+          this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = null;
+        }
+
+        this.autocompletarPagoDisciplina(d);
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.arancelesPorDisciplina[d.disciplinaId] = [];
+        this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = null;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  anularPago(pago: PagoDto): void {
+    if (!pago?.id) return;
+
+    const motivo = window.prompt('Motivo de anulación (opcional):') ?? '';
+
+    this.anulandoPagoId = pago.id;
     this.cdr.detectChanges();
 
-    if (!this.pago.socioId) {
-      this.pagoError = 'Socio inválido';
+    this.pagosApi
+      .anularPago(pago.id, motivo)
+      .pipe(
+        finalize(() => {
+          this.anulandoPagoId = null;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (res: any) => {
+          if (res?.status !== 200) {
+            this.error = res?.mensaje || 'No se pudo anular el pago';
+            this.cdr.detectChanges();
+            return;
+          }
+
+          this.pagoOk = 'Pago anulado correctamente';
+          if (this.data?.socioId) {
+            this.cargar(this.data.socioId);
+          }
+        },
+        error: (err) => {
+          this.error = err?.error?.mensaje || 'Error anulando el pago';
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  puedeAnularPago(p: any): boolean {
+    return !p?.anulado;
+  }
+
+  // NUEVO: abrir/cerrar agregar disciplina
+  toggleAgregarDisciplina(): void {
+    this.mostrarAgregarDisciplina = !this.mostrarAgregarDisciplina;
+
+    if (this.mostrarAgregarDisciplina) {
+      this.agregarDisciplinaError = null;
+      this.agregarDisciplinaOk = null;
+      this.resetAgregarDisciplinaForm();
+      this.cargarDisciplinasDisponibles();
+    }
+  }
+
+  resetAgregarDisciplinaForm(): void {
+    this.agregarDisciplinaForm = {
+      disciplinaId: null,
+      arancelDisciplinaId: null,
+      inscripcionPagada: false,
+    };
+    this.arancelesNuevaDisciplina = [];
+  }
+
+  cargarDisciplinasDisponibles(): void {
+    this.http.get<any>(`${environment.apiUrl}/api/admin/disciplinas`).subscribe({
+      next: (res) => {
+        const todas: DisciplinaDto[] = res?.data ?? [];
+        const idsActuales = new Set((this.data?.disciplinas ?? []).map((d) => d.disciplinaId));
+
+        this.disciplinasDisponibles = todas.filter(
+          (d) => d?.id != null && !idsActuales.has(d.id) && d.activa !== false,
+        );
+
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.disciplinasDisponibles = [];
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  onNuevaDisciplinaChange(): void {
+    const disciplinaId = this.agregarDisciplinaForm.disciplinaId;
+
+    this.agregarDisciplinaForm.arancelDisciplinaId = null;
+    this.arancelesNuevaDisciplina = [];
+
+    if (!disciplinaId) {
       this.cdr.detectChanges();
       return;
     }
 
-    if (this.pago.concepto === 'CUOTA_MENSUAL') {
-      const per = (this.pago.periodo ?? '').trim();
-      if (!/^\d{4}-\d{2}$/.test(per)) {
-        this.pagoError = 'Periodo inválido. Formato: YYYY-MM (ej: 2026-03)';
+    this.pagosApi.getArancelesPorDisciplina(disciplinaId).subscribe({
+      next: (res) => {
+        this.arancelesNuevaDisciplina = res?.data ?? [];
         this.cdr.detectChanges();
-        return;
-      }
-      this.pago.periodo = per;
-
-      if (!this.pago.arancelDisciplinaId) {
-        this.pagoError = 'Debés seleccionar una categoría/arancel';
+      },
+      error: () => {
+        this.arancelesNuevaDisciplina = [];
         this.cdr.detectChanges();
-        return;
-      }
+      },
+    });
+  }
 
-      if (this.arancelSeleccionado?.vigenteDesde) {
-        const periodoMinimo = this.periodoDesdeFecha(this.arancelSeleccionado.vigenteDesde);
+  guardarNuevaDisciplina(): void {
+    if (!this.data?.socioId) {
+      this.agregarDisciplinaError = 'Socio inválido';
+      this.cdr.detectChanges();
+      return;
+    }
 
-        if (this.periodoEsAnterior(per, '2026-04')) {
-          this.pagoError =
-            'Solo se permiten cuotas mensuales desde 2026-04. Para períodos anteriores, registralo como ingreso manual.';
+    if (!this.agregarDisciplinaForm.disciplinaId) {
+      this.agregarDisciplinaError = 'Debés seleccionar una disciplina';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.agregarDisciplinaForm.arancelDisciplinaId) {
+      this.agregarDisciplinaError = 'Debés seleccionar una categoría/arancel';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.agregarDisciplinaLoading = true;
+    this.agregarDisciplinaError = null;
+    this.agregarDisciplinaOk = null;
+    this.cdr.detectChanges();
+
+    this.api
+      .agregarDisciplina(this.data.socioId, {
+        disciplinaId: this.agregarDisciplinaForm.disciplinaId,
+        arancelDisciplinaId: this.agregarDisciplinaForm.arancelDisciplinaId,
+        inscripcionPagada: this.agregarDisciplinaForm.inscripcionPagada,
+      })
+      .pipe(
+        finalize(() => {
+          this.agregarDisciplinaLoading = false;
           this.cdr.detectChanges();
-          return;
+        }),
+      )
+      .subscribe({
+        next: (res: any) => {
+          if (res?.status !== 200 && res?.status !== 201) {
+            this.agregarDisciplinaError = res?.mensaje || 'No se pudo agregar la disciplina';
+            this.cdr.detectChanges();
+            return;
+          }
+
+          const socioId = this.data!.socioId;
+
+          this.agregarDisciplinaOk = 'Disciplina agregada correctamente';
+          this.resetAgregarDisciplinaForm();
+          this.mostrarAgregarDisciplina = false;
+          this.cargar(socioId);
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.agregarDisciplinaError = err?.error?.mensaje || 'Error al agregar la disciplina';
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  onConceptoChangeDisciplina(d: SocioDisciplinaResumenVm): void {
+    const form = this.pagoForms[d.disciplinaId];
+    if (!form) return;
+
+    if (form.concepto === 'INSCRIPCION') {
+      this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = null;
+      form.periodo = null as any;
+      form.arancelDisciplinaId = null as any;
+      form.categoria = null as any;
+      form.montoSocial = 0;
+      form.montoDisciplina = 0;
+      form.montoPreparacionFisica = 0;
+      form.montoTotal = 0;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const aranceles = this.arancelesPorDisciplina[d.disciplinaId] ?? [];
+    const seleccionado =
+      aranceles.find((a: ArancelDisciplinaDto) => a.id === d.arancelDisciplinaId) ??
+      aranceles[0] ??
+      null;
+
+    if (seleccionado) {
+      form.arancelDisciplinaId = seleccionado.id;
+      this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = seleccionado;
+      this.onArancelChangeDisciplina(d);
+    }
+
+    this.autocompletarPagoDisciplina(d);
+    this.cdr.detectChanges();
+  }
+
+  onArancelChangeDisciplina(d: SocioDisciplinaResumenVm): void {
+    const form = this.pagoForms[d.disciplinaId];
+    if (!form) return;
+
+    if (form.concepto === 'INSCRIPCION') {
+      this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = null;
+      form.arancelDisciplinaId = null as any;
+      form.categoria = null as any;
+      form.montoSocial = 0;
+      form.montoDisciplina = 0;
+      form.montoPreparacionFisica = 0;
+      form.montoTotal = 0;
+      return;
+    }
+
+    const arancelFijoId = d.arancelDisciplinaId ?? null;
+    if (arancelFijoId != null) {
+      form.arancelDisciplinaId = arancelFijoId;
+    }
+
+    const id = Number(form.arancelDisciplinaId);
+    const aranceles = this.arancelesPorDisciplina[d.disciplinaId] ?? [];
+    const seleccionado = aranceles.find((a: ArancelDisciplinaDto) => a.id === id) ?? null;
+
+    this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = seleccionado;
+
+    if (!seleccionado) {
+      form.categoria = null as any;
+      form.montoSocial = 0;
+      form.montoDisciplina = 0;
+      form.montoPreparacionFisica = 0;
+      form.montoTotal = 0;
+      return;
+    }
+
+    const esPrincipal = this.esDisciplinaPrincipal(d);
+
+    form.categoria = seleccionado.categoria;
+    form.montoSocial = esPrincipal ? Number(seleccionado.montoSocial ?? 0) : 0;
+    form.montoDisciplina = Number(seleccionado.montoDeportivo ?? 0);
+    form.montoPreparacionFisica = Number(seleccionado.montoPreparacionFisica ?? 0);
+    this.recalcularMontoTotalDisciplina(d);
+
+    if (
+      form.concepto === 'CUOTA_MENSUAL' &&
+      !d.deuda?.items?.some((i) => !i.pagado && i.periodo !== 'INSCRIPCION')
+    ) {
+      this.autocompletarPagoDisciplina(d);
+    }
+  }
+
+  recalcularMontoTotalDisciplina(d: SocioDisciplinaResumenVm): void {
+    const form = this.pagoForms[d.disciplinaId];
+    if (!form) return;
+
+    const total =
+      Number(form.montoSocial ?? 0) +
+      Number(form.montoDisciplina ?? 0) +
+      Number(form.montoPreparacionFisica ?? 0);
+
+    form.montoTotal = total;
+  }
+
+  autocompletarPagoDisciplina(d: SocioDisciplinaResumenVm): void {
+    const form = this.pagoForms[d.disciplinaId];
+    if (!form) return;
+
+    const deuda = d.deuda;
+    const esPrincipal = this.esDisciplinaPrincipal(d);
+
+    if (form.concepto === 'CUOTA_MENSUAL') {
+      const primerAdeudado = deuda?.items?.find((i) => !i.pagado && i.periodo !== 'INSCRIPCION');
+
+      if (primerAdeudado) {
+        form.periodo = primerAdeudado.periodo as any;
+      } else {
+        const actual = this.periodoActual();
+        const arancel = this.arancelSeleccionadoPorDisciplina[d.disciplinaId];
+
+        if (arancel?.vigenteDesde) {
+          const periodoArancel = this.periodoDesdeFecha(arancel.vigenteDesde as any);
+          form.periodo = this.maxPeriodo(actual, periodoArancel) as any;
+        } else {
+          form.periodo = actual as any;
         }
       }
 
-      this.recalcularMontoTotal();
-    } else {
-      this.pago.periodo = null;
-      this.pago.arancelDisciplinaId = null;
-      this.pago.categoria = null;
-      this.pago.montoSocial = 0;
-      this.pago.montoDisciplina = 0;
-      this.pago.montoPreparacionFisica = 0;
-      this.pago.montoTotal = Number(this.pago.montoTotal ?? 0);
+      const arancel = this.arancelSeleccionadoPorDisciplina[d.disciplinaId];
+      if (arancel) {
+        form.categoria = arancel.categoria;
+        form.montoSocial = esPrincipal ? Number(arancel.montoSocial ?? 0) : 0;
+        form.montoDisciplina = Number(arancel.montoDeportivo ?? 0);
+        form.montoPreparacionFisica = Number(arancel.montoPreparacionFisica ?? 0);
+        this.recalcularMontoTotalDisciplina(d);
+      }
+
+      return;
     }
 
-    if (!this.pago.medio?.trim()) {
-      this.pagoError = 'Medio es obligatorio';
+    if (form.concepto === 'INSCRIPCION') {
+      form.periodo = null as any;
+      form.arancelDisciplinaId = null as any;
+      form.categoria = null as any;
+      form.montoSocial = 0;
+      form.montoDisciplina = 0;
+      form.montoPreparacionFisica = 0;
+    }
+  }
+
+  resetPagoFormDisciplina(d: SocioDisciplinaResumenVm): void {
+    if (!this.data) return;
+
+    this.pagoForms[d.disciplinaId] = {
+      socioId: this.data.socioId,
+      concepto: 'CUOTA_MENSUAL',
+      periodo: '',
+      disciplinaId: d.disciplinaId,
+      arancelDisciplinaId: d.arancelDisciplinaId ?? null,
+      categoria: d.categoriaArancel ?? null,
+      montoTotal: 0,
+      montoSocial: 0,
+      montoDisciplina: 0,
+      montoPreparacionFisica: 0,
+      medio: 'EFECTIVO',
+      observacion: '',
+    };
+
+    const aranceles = this.arancelesPorDisciplina[d.disciplinaId] ?? [];
+    const seleccionado =
+      aranceles.find((a: ArancelDisciplinaDto) => a.id === d.arancelDisciplinaId) ??
+      aranceles[0] ??
+      null;
+
+    this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = seleccionado;
+
+    if (seleccionado) {
+      this.pagoForms[d.disciplinaId].arancelDisciplinaId = seleccionado.id;
+      this.onArancelChangeDisciplina(d);
+    }
+
+    this.autocompletarPagoDisciplina(d);
+  }
+
+  registrarPagoDisciplina(d: SocioDisciplinaResumenVm): void {
+    const form = this.pagoForms[d.disciplinaId];
+    if (!form) return;
+
+    this.pagoErrorPorDisciplina[d.disciplinaId] = null;
+    this.pagoOkPorDisciplina[d.disciplinaId] = null;
+    this.cdr.detectChanges();
+
+    if (!form.socioId) {
+      this.pagoErrorPorDisciplina[d.disciplinaId] = 'Socio inválido';
       this.cdr.detectChanges();
       return;
     }
 
-    if (!this.pago.montoTotal || this.pago.montoTotal <= 0) {
-      this.pagoError = 'Monto total debe ser mayor a 0';
+    if (!form.disciplinaId) {
+      this.pagoErrorPorDisciplina[d.disciplinaId] = 'Disciplina inválida';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (form.concepto === 'CUOTA_MENSUAL') {
+      const per = (form.periodo ?? '').trim();
+
+      if (!/^\d{4}-\d{2}$/.test(per)) {
+        this.pagoErrorPorDisciplina[d.disciplinaId] =
+          'Periodo inválido. Formato: YYYY-MM (ej: 2026-04)';
+        this.cdr.detectChanges();
+        return;
+      }
+
+      form.periodo = per as any;
+
+      if (!form.arancelDisciplinaId) {
+        this.pagoErrorPorDisciplina[d.disciplinaId] = 'Debés seleccionar una categoría/arancel';
+        this.cdr.detectChanges();
+        return;
+      }
+
+      if (this.periodoEsAnterior(per, '2026-04')) {
+        this.pagoErrorPorDisciplina[d.disciplinaId] =
+          'Solo se permiten cuotas mensuales desde 2026-04. Para períodos anteriores, registralo como ingreso manual.';
+        this.cdr.detectChanges();
+        return;
+      }
+
+      this.recalcularMontoTotalDisciplina(d);
+    } else {
+      form.periodo = null as any;
+      form.arancelDisciplinaId = null as any;
+      form.categoria = null as any;
+      form.montoSocial = 0;
+      form.montoDisciplina = 0;
+      form.montoPreparacionFisica = 0;
+      form.montoTotal = Number(form.montoTotal ?? 0);
+    }
+
+    if (!(form.medio as any)?.trim()) {
+      this.pagoErrorPorDisciplina[d.disciplinaId] = 'Medio es obligatorio';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!form.montoTotal || form.montoTotal <= 0) {
+      this.pagoErrorPorDisciplina[d.disciplinaId] = 'Monto total debe ser mayor a 0';
       this.cdr.detectChanges();
       return;
     }
@@ -364,7 +649,7 @@ export class AdminSocioDetalleComponent implements OnInit {
     this.cdr.detectChanges();
 
     this.pagosApi
-      .registrarManual(this.pago)
+      .registrarManual(form)
       .pipe(
         finalize(() => {
           this.loading = false;
@@ -373,27 +658,43 @@ export class AdminSocioDetalleComponent implements OnInit {
       )
       .subscribe({
         next: (res: any) => {
-          console.log('RESPUESTA REGISTRAR PAGO:', res);
           if (res.status !== 200 && res.status !== 201) {
-            this.pagoError = res.mensaje || 'No se pudo registrar el pago';
+            this.pagoErrorPorDisciplina[d.disciplinaId] =
+              res.mensaje || 'No se pudo registrar el pago';
             this.cdr.detectChanges();
             return;
           }
 
-          this.pagoOk = 'Pago registrado correctamente';
+          this.pagoOkPorDisciplina[d.disciplinaId] = 'Pago registrado correctamente';
           this.ultimoPagoRegistradoId = res?.data?.pagoId ?? null;
 
-          const socioId = this.pago.socioId;
+          const socioId = form.socioId;
           this.cargar(socioId);
-          this.resetPagoForm();
+          this.resetPagoFormDisciplina(d);
           this.statsSvc.refresh();
           this.cdr.detectChanges();
         },
         error: (err) => {
-          this.pagoError = err?.error?.mensaje || 'Error registrando pago';
+          this.pagoErrorPorDisciplina[d.disciplinaId] =
+            err?.error?.mensaje || 'Error registrando pago';
           this.cdr.detectChanges();
         },
       });
+  }
+
+  getPagosPorDisciplina(d: SocioDisciplinaResumenVm): PagoDto[] {
+    if (!this.data) return [];
+    return (this.data.ultimosPagos ?? []).filter((p) => p.disciplinaId === d.disciplinaId);
+  }
+
+  getPeriodosAdeudadosPorDisciplina(d: SocioDisciplinaResumenVm): string[] {
+    const items = d.deuda?.items ?? [];
+    return items.filter((i) => !i.pagado).map((i) => i.periodo);
+  }
+
+  tieneDeudaDisciplina(d: SocioDisciplinaResumenVm): boolean {
+    const items = d.deuda?.items ?? [];
+    return items.some((i) => !i.pagado);
   }
 
   periodoActual(): string {
@@ -421,9 +722,7 @@ export class AdminSocioDetalleComponent implements OnInit {
   fmtFecha(iso: string): string {
     if (!iso) return '-';
 
-    // 👇 FORZAMOS UTC agregando la Z si no viene
     const fecha = iso.endsWith('Z') ? iso : iso + 'Z';
-
     const d = new Date(fecha);
 
     return d.toLocaleString('es-AR', {
@@ -433,12 +732,6 @@ export class AdminSocioDetalleComponent implements OnInit {
       hour: '2-digit',
       minute: '2-digit',
     });
-  }
-
-  getPeriodosAdeudados(): string[] {
-    const items = this.data?.deuda?.items ?? [];
-
-    return items.filter((i) => !i.pagado).map((i) => i.periodo);
   }
 
   formatearPeriodo(periodo: string): string {
@@ -466,30 +759,6 @@ export class AdminSocioDetalleComponent implements OnInit {
     return `${nombresMeses[mes - 1]} ${anio}`;
   }
 
-  descargarComprobante(): void {
-    if (!this.ultimoPagoRegistradoId) return;
-
-    this.pagosApi.descargarComprobante(this.ultimoPagoRegistradoId).subscribe({
-      next: (blob: Blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `comprobante_${this.ultimoPagoRegistradoId}.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      },
-      error: () => {
-        this.pagoError = 'No se pudo descargar el comprobante';
-        this.cdr.detectChanges();
-      },
-    });
-  }
-
-  tieneDeuda(): boolean {
-    const items = this.data?.deuda?.items ?? [];
-    return items.some((i) => !i.pagado);
-  }
-
   descargarComprobantePorPago(pagoId: number): void {
     if (!pagoId) return;
 
@@ -503,7 +772,7 @@ export class AdminSocioDetalleComponent implements OnInit {
         window.URL.revokeObjectURL(url);
       },
       error: () => {
-        this.pagoError = 'No se pudo descargar el comprobante';
+        this.error = 'No se pudo descargar el comprobante';
         this.cdr.detectChanges();
       },
     });

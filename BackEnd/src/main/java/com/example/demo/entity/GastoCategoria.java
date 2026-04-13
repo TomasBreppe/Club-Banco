@@ -8,5 +8,6 @@ public enum GastoCategoria {
     EVENTOS,
     HONORARIOS,
     SUELDOS,
+    GASTOS_BANCARIOS,
     OTROS
 }

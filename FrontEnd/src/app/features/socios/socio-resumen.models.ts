@@ -18,11 +18,23 @@ export interface DeudaResponseDto {
   items: DeudaItemDto[];
 }
 
+export interface SocioDisciplinaResumenDto {
+  socioDisciplinaId?: number | null;
+  disciplinaId: number;
+  disciplinaNombre: string;
+  arancelDisciplinaId?: number | null;
+  categoriaArancel?: string | null;
+  vigenciaHasta?: string | null;
+  inscripcionPagada?: boolean | null;
+  deuda: DeudaResponseDto | null;
+}
+
 export interface SocioResumenDto {
   socioId: number;
   dni: string;
   nombre: string;
   apellido: string;
+  celular?: string | null;
   activo: boolean;
   vigenciaHasta?: string | null;
   disciplinaId: number;
@@ -31,4 +43,7 @@ export interface SocioResumenDto {
   categoriaArancel?: string | null;
   deuda: DeudaResponseDto | null;
   ultimosPagos: PagoDto[];
+
+  // nuevo
+  disciplinas?: SocioDisciplinaResumenDto[];
 }
