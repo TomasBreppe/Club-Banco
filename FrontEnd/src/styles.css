@@ -216,6 +216,168 @@ body {
   white-space: nowrap;
 }
 
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.btn-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.btn-pill:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Variante azul tipo "Ver detalle" */
+.btn-pill-primary {
+  color: #2f63ff;
+  border-color: rgba(47, 99, 255, 0.28);
+  background: #fff;
+}
+
+.btn-pill-primary:hover {
+  background: rgba(47, 99, 255, 0.06);
+  color: #1f4fe0;
+  border-color: rgba(47, 99, 255, 0.38);
+}
+
+/* Variante roja tipo "Dar de baja" */
+.btn-pill-danger {
+  color: #d93025;
+  border-color: rgba(217, 48, 37, 0.28);
+  background: #fff;
+}
+
+.btn-pill-danger:hover {
+  background: rgba(217, 48, 37, 0.06);
+  color: #b42318;
+  border-color: rgba(217, 48, 37, 0.38);
+}
+
+/* Variante verde */
+.btn-pill-success {
+  color: #1f8f4d;
+  border-color: rgba(31, 143, 77, 0.28);
+  background: #fff;
+}
+
+.btn-pill-success:hover {
+  background: rgba(31, 143, 77, 0.06);
+  color: #16653a;
+  border-color: rgba(31, 143, 77, 0.38);
+}
+
 .period-chip i {
   color: var(--cb-text-muted);
+}
+
+/* Esto fue lo ultimo que agregue */
+:root {
+  --cb-white: #ffffff;
+  --cb-surface-hover: #f7fbff;
+  --cb-border-strong: #bfd6fa;
+  --cb-focus-ring: rgba(47, 109, 246, 0.12);
+}
+
+.page-head {
+  flex-wrap: wrap;
+}
+
+.cb-card,
+.cb-card-soft,
+.cb-input,
+.cb-select,
+.cb-textarea,
+.cb-btn-primary,
+.cb-btn-secondary,
+.btn-pill {
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.cb-btn-primary:focus-visible,
+.cb-btn-secondary:focus-visible,
+.btn-pill:focus-visible,
+.cb-input:focus-visible,
+.cb-select:focus-visible,
+.cb-textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 0.2rem var(--cb-focus-ring);
+}
+
+.cb-section-title {
+  color: var(--cb-text);
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.cb-section-subtitle {
+  color: var(--cb-text-muted);
+}
+
+.modal-backdrop-custom {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1040;
+}
+
+.custom-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.custom-modal-card {
+  width: min(720px, 100%);
+  background: var(--cb-surface);
+  border: 1px solid var(--cb-border);
+  border-radius: var(--cb-radius-lg);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+}
+
+.custom-modal-header,
+.custom-modal-footer {
+  padding: 1rem 1.25rem;
+}
+
+.custom-modal-header {
+  border-bottom: 1px solid var(--cb-border);
+}
+
+.custom-modal-footer {
+  border-top: 1px solid var(--cb-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.custom-modal-body {
+  padding: 1.25rem;
 }

@@ -243,6 +243,7 @@
                 <th>Descripción</th>
                 <th>Medio de pago</th>
                 <th>Monto</th>
+                <th class="text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -253,6 +254,12 @@
                 <td>{{ g.descripcion || '-' }}</td>
                 <td>{{ g.medioPago || '-' }}</td>
                 <td>{{ g.monto | currency: 'ARS' : 'symbol' : '1.2-2' }}</td>
+                <td class="text-center">
+                  <button class="btn-pill btn-pill-primary" type="button" (click)="abrirEditar(g)">
+                    <i class="bi bi-pencil-square"></i>
+                    Editar
+                  </button>
+                </td>
               </tr>
 
               <tr *ngIf="gastos.length === 0">
@@ -260,6 +267,117 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL EDITAR -->
+    <div class="modal-backdrop-custom" *ngIf="mostrarModalEditar" (click)="cerrarEditar()"></div>
+
+    <div class="custom-modal" *ngIf="mostrarModalEditar">
+      <div class="custom-modal-card">
+        <div class="custom-modal-header">
+          <h5 class="mb-0">Editar gasto</h5>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            (click)="cerrarEditar()"
+          ></button>
+        </div>
+
+        <div class="custom-modal-body">
+          <div class="row g-3">
+            <div class="col-md-2">
+              <label class="form-label">Fecha</label>
+              <input
+                type="date"
+                class="form-control"
+                [(ngModel)]="editForm.fecha"
+                name="editFecha"
+              />
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Categoría</label>
+              <select
+                class="form-select"
+                [(ngModel)]="editForm.categoria"
+                name="editCategoria"
+                (ngModelChange)="onEditarCategoriaChange()"
+              >
+                <option value="">Seleccionar...</option>
+                <option value="DISCIPLINAS">Disciplinas</option>
+                <option value="EVENTOS">Eventos</option>
+                <option value="GASTOS_BANCARIOS">Gastos bancarios</option>
+                <option value="HONORARIOS">Honorarios</option>
+                <option value="IMPUESTOS">Impuestos</option>
+                <option value="LIMPIEZA">Limpieza</option>
+                <option value="MANTENIMIENTO">Mantenimiento</option>
+                <option value="SUELDOS">Sueldos</option>
+                <option value="OTROS">Otros</option>
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Concepto</label>
+              <select
+                class="form-select"
+                [(ngModel)]="editForm.concepto"
+                name="editConcepto"
+                [disabled]="!editForm.categoria"
+              >
+                <option value="">Seleccionar...</option>
+                <option *ngFor="let concepto of conceptosEditarDisponibles" [value]="concepto">
+                  {{ concepto }}
+                </option>
+              </select>
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">Monto</label>
+              <input
+                type="number"
+                class="form-control"
+                [(ngModel)]="editForm.monto"
+                name="editMonto"
+              />
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">Medio de pago</label>
+              <select class="form-select" [(ngModel)]="editForm.medioPago" name="editMedioPago">
+                <option value="">Seleccionar...</option>
+                <option value="BANCO">Banco</option>
+                <option value="EFECTIVO">Efectivo</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Descripción</label>
+              <textarea
+                class="form-control"
+                rows="2"
+                [(ngModel)]="editForm.descripcion"
+                name="editDescripcion"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="custom-modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="cerrarEditar()">
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="guardandoEdicion"
+            (click)="guardarEdicion()"
+          >
+            {{ guardandoEdicion ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
         </div>
       </div>
     </div>

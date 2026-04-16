@@ -3,6 +3,7 @@ package com.example.demo.service.impl;
 import com.example.demo.config.BaseResponse;
 import com.example.demo.dto.ingresos.IngresoManualCreateDto;
 import com.example.demo.dto.ingresos.IngresoManualDto;
+import com.example.demo.dto.ingresos.IngresoManualUpdateRequestDto;
 import com.example.demo.entity.CategoriaIngresoManual;
 import com.example.demo.entity.IngresoManualEntity;
 import com.example.demo.entity.MedioIngresoManual;
@@ -48,7 +49,8 @@ public class IngresoManualServiceImpl implements IngresoManualService {
 
         if (categoria == CategoriaIngresoManual.CUOTAS_ATRASADAS &&
                 (dto.getDescripcion() == null || dto.getDescripcion().trim().isBlank())) {
-            return new BaseResponse<>("La descripción es obligatoria cuando la categoría es CUOTAS_ATRASADAS", 400, null);
+            return new BaseResponse<>("La descripción es obligatoria cuando la categoría es CUOTAS_ATRASADAS", 400,
+                    null);
         }
 
         try {
@@ -78,5 +80,52 @@ public class IngresoManualServiceImpl implements IngresoManualService {
                 .build();
 
         return new BaseResponse<>("Ingreso manual registrado correctamente", 201, response);
+    }
+
+    @Override
+    public BaseResponse<IngresoManualDto> actualizar(Long id, IngresoManualUpdateRequestDto request) {
+        IngresoManualEntity ingreso = ingresoManualRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("No se encontró el ingreso con id: " + id));
+
+        if (request.getFecha() == null) {
+            return new BaseResponse<>("La fecha es obligatoria", 400, null);
+        }
+
+        if (request.getCategoria() == null) {
+            return new BaseResponse<>("La categoría es obligatoria", 400, null);
+        }
+
+        if (request.getMonto() == null || request.getMonto().doubleValue() <= 0) {
+            return new BaseResponse<>("El monto debe ser mayor a 0", 400, null);
+        }
+
+        if (request.getMedioPago() == null) {
+            return new BaseResponse<>("El medio de pago es obligatorio", 400, null);
+        }
+
+        if (request.getCategoria() == CategoriaIngresoManual.CUOTAS_ATRASADAS &&
+                (request.getDescripcion() == null || request.getDescripcion().trim().isBlank())) {
+            return new BaseResponse<>("La descripción es obligatoria cuando la categoría es CUOTAS_ATRASADAS", 400,
+                    null);
+        }
+
+        ingreso.setFecha(request.getFecha());
+        ingreso.setCategoria(request.getCategoria());
+        ingreso.setMedioPago(request.getMedioPago());
+        ingreso.setMonto(request.getMonto());
+        ingreso.setDescripcion(request.getDescripcion() != null ? request.getDescripcion().trim() : null);
+
+        IngresoManualEntity actualizado = ingresoManualRepository.save(ingreso);
+
+        IngresoManualDto dto = IngresoManualDto.builder()
+                .id(actualizado.getId())
+                .fecha(actualizado.getFecha())
+                .categoria(actualizado.getCategoria().name())
+                .medioPago(actualizado.getMedioPago().name())
+                .monto(actualizado.getMonto())
+                .descripcion(actualizado.getDescripcion())
+                .build();
+
+        return new BaseResponse<>("Ingreso actualizado correctamente", 200, dto);
     }
 }

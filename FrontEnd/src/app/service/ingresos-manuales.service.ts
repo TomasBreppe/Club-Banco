@@ -18,7 +18,11 @@ export class IngresosManualesService {
   crear(body: IngresoManualCreateRequest): Observable<BaseResponse<IngresoManualDto>> {
     return this.http.post<BaseResponse<IngresoManualDto>>(
       `${this.base}/api/admin/ingresos-manuales`,
-      body
+      body,
     );
+  }
+
+  actualizar(id: number, body: any) {
+    return this.http.put<any>(`${this.base}/api/admin/ingresos-manuales/${id}`, body);
   }
 }

@@ -49,6 +49,9 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
   guardandoManual = false;
   error: string | null = null;
   ok: string | null = null;
+  guardandoEdicion = false;
+  mostrarModalEditar = false;
+  editandoId: number | null = null;
 
   resumen: DashboardIngresosResumen | null = null;
   ingresos: IngresoDashboardItem[] = [];
@@ -66,6 +69,15 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
     q: '',
   };
 
+  editFormIngresoManual: IngresoManualCreateRequest = {
+    fecha: '',
+    categoria: '',
+    medioPago: '',
+    monto: null,
+    descripcion: '',
+    concepto: '',
+  };
+
   categoriasIngresoManual: string[] = [
     'DIEF',
     'EVENTOS',
@@ -74,7 +86,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
     'MANTOVANI',
     'MUTUAL',
     'PLAYAS',
-    'CUOTAS ATRASADAS'
+    'CUOTAS ATRASADAS',
   ];
 
   mediosIngresoManual: string[] = ['BANCO', 'EFECTIVO'];
@@ -358,6 +370,110 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
         },
       },
     });
+  }
+
+  abrirEditarIngresoManual(i: IngresoDashboardItem): void {
+    this.error = null;
+    this.ok = null;
+    this.editandoId = (i as any).id ?? null;
+    this.mostrarModalEditar = true;
+
+    this.editFormIngresoManual = {
+      fecha: i.fecha ? String(i.fecha).slice(0, 10) : '',
+      categoria: i.categoria || '',
+      medioPago: i.medio || '',
+      monto: i.monto ?? null,
+      descripcion: i.descripcion || '',
+      concepto: i.concepto || '',
+    };
+
+    this.cdr.detectChanges();
+  }
+
+  cerrarEditarIngresoManual(): void {
+    this.mostrarModalEditar = false;
+    this.editandoId = null;
+    this.editFormIngresoManual = {
+      fecha: '',
+      categoria: '',
+      medioPago: '',
+      monto: null,
+      descripcion: '',
+      concepto: '',
+    };
+    this.cdr.detectChanges();
+  }
+
+  guardarEdicionIngresoManual(): void {
+    this.error = null;
+    this.ok = null;
+
+    if (!this.editandoId) {
+      this.error = 'No se encontró el ingreso a editar';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.editFormIngresoManual.fecha) {
+      this.error = 'La fecha es obligatoria';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.editFormIngresoManual.categoria) {
+      this.error = 'La categoría es obligatoria';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.editFormIngresoManual.medioPago) {
+      this.error = 'El medio de pago es obligatorio';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.editFormIngresoManual.monto || this.editFormIngresoManual.monto <= 0) {
+      this.error = 'El monto debe ser mayor a 0';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.guardandoEdicion = true;
+    this.cdr.detectChanges();
+
+    this.ingresosManualesService
+      .actualizar(this.editandoId, {
+        fecha: this.editFormIngresoManual.fecha,
+        categoria: this.editFormIngresoManual.categoria,
+        medioPago: this.editFormIngresoManual.medioPago,
+        monto: this.editFormIngresoManual.monto,
+        descripcion: this.editFormIngresoManual.descripcion?.trim() || '',
+        concepto: this.editFormIngresoManual.concepto?.trim() || '',
+      })
+      .pipe(
+        finalize(() => {
+          this.guardandoEdicion = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (res) => {
+          if (res.status !== 200 && res.status !== 201) {
+            this.error = res.mensaje || 'No se pudo actualizar el ingreso manual';
+            this.cdr.detectChanges();
+            return;
+          }
+
+          this.ok = 'Ingreso manual actualizado correctamente';
+          this.cerrarEditarIngresoManual();
+          this.cargarDashboard();
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.error = 'Error al actualizar el ingreso manual';
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   private obtenerNombreGrupoDisciplina(ingreso: IngresoDashboardItem): string {

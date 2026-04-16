@@ -21,6 +21,15 @@ export interface Gasto {
   createdAt: string;
 }
 
+export interface GastoUpdateRequest {
+  fecha: string;
+  categoria: string;
+  concepto: string;
+  descripcion: string | null;
+  medioPago: string;
+  monto: number;
+}
+
 export interface GastoCreateRequest {
   fecha: string;
   categoria: GastoCategoria | '';

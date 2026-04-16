@@ -238,6 +238,7 @@
                 <th>Medio</th>
                 <th>Monto</th>
                 <th>Descripción</th>
+                <th class="text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -252,15 +253,129 @@
                 <td>{{ formatMedio(i.medio) }}</td>
                 <td>{{ i.monto | currency: 'ARS' : 'symbol' : '1.2-2' }}</td>
                 <td>{{ i.descripcion || '-' }}</td>
+                <td class="text-center">
+                  <button
+                    *ngIf="i.origen === 'MANUAL'"
+                    class="btn-pill btn-pill-primary"
+                    type="button"
+                    (click)="abrirEditarIngresoManual(i)"
+                  >
+                    <i class="bi bi-pencil-square"></i>
+                    Editar
+                  </button>
+                  <span *ngIf="i.origen !== 'MANUAL'" class="text-muted">-</span>
+                </td>
               </tr>
 
               <tr *ngIf="ingresos.length === 0">
-                <td colspan="10" class="text-center text-muted py-4">
+                <td colspan="11" class="text-center text-muted py-4">
                   No hay ingresos para mostrar.
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL EDITAR INGRESO MANUAL -->
+    <div
+      class="modal-backdrop-custom"
+      *ngIf="mostrarModalEditar"
+      (click)="cerrarEditarIngresoManual()"
+    ></div>
+
+    <div class="custom-modal" *ngIf="mostrarModalEditar">
+      <div class="custom-modal-card">
+        <div class="custom-modal-header">
+          <h5 class="mb-0">Editar ingreso manual</h5>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Close"
+            (click)="cerrarEditarIngresoManual()"
+          ></button>
+        </div>
+
+        <div class="custom-modal-body">
+          <div class="row g-3">
+            <div class="col-md-2">
+              <label class="form-label">Fecha</label>
+              <input
+                type="date"
+                class="form-control"
+                [(ngModel)]="editFormIngresoManual.fecha"
+                name="editFechaIngresoManual"
+              />
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Categoría</label>
+              <select
+                class="form-select"
+                [(ngModel)]="editFormIngresoManual.categoria"
+                name="editCategoriaIngresoManual"
+              >
+                <option value="">Seleccionar...</option>
+                <option *ngFor="let c of categoriasIngresoManual" [value]="c">
+                  {{ formatCategoria(c) }}
+                </option>
+              </select>
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">Monto</label>
+              <input
+                type="number"
+                class="form-control"
+                [(ngModel)]="editFormIngresoManual.monto"
+                name="editMontoIngresoManual"
+              />
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">Medio</label>
+              <select
+                class="form-select"
+                [(ngModel)]="editFormIngresoManual.medioPago"
+                name="editMedioIngresoManual"
+              >
+                <option value="">Seleccionar...</option>
+                <option *ngFor="let m of mediosIngresoManual" [value]="m">
+                  {{ formatMedio(m) }}
+                </option>
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Descripción</label>
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="editFormIngresoManual.descripcion"
+                name="editDescripcionIngresoManual"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="custom-modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            (click)="cerrarEditarIngresoManual()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="guardandoEdicion"
+            (click)="guardarEdicionIngresoManual()"
+          >
+            {{ guardandoEdicion ? 'Guardando...' : 'Guardar cambios' }}
+          </button>
         </div>
       </div>
     </div>

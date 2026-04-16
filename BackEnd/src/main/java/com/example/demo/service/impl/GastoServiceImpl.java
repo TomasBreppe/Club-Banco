@@ -19,135 +19,163 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GastoServiceImpl implements GastoService {
 
-    private final GastoRepository gastoRepository;
+        private final GastoRepository gastoRepository;
 
-    @Override
-    public BaseResponse<GastoDto> crear(GastoCreateDto dto) {
+        @Override
+        public BaseResponse<GastoDto> crear(GastoCreateDto dto) {
 
-        if (dto.getCategoria() == null) {
-            return new BaseResponse<>("La categoría es obligatoria", 400, null);
+                if (dto.getCategoria() == null) {
+                        return new BaseResponse<>("La categoría es obligatoria", 400, null);
+                }
+
+                if (dto.getConcepto() == null || dto.getConcepto().trim().isBlank()) {
+                        return new BaseResponse<>("El concepto es obligatorio", 400, null);
+                }
+
+                if (dto.getMonto() == null || dto.getMonto().compareTo(BigDecimal.ZERO) <= 0) {
+                        return new BaseResponse<>("El monto debe ser mayor a 0", 400, null);
+                }
+
+                GastoEntity gasto = GastoEntity.builder()
+                                .fecha(dto.getFecha() != null ? dto.getFecha() : LocalDate.now())
+                                .categoria(dto.getCategoria())
+                                .concepto(dto.getConcepto().trim())
+                                .descripcion(dto.getDescripcion() != null ? dto.getDescripcion().trim() : null)
+                                .monto(dto.getMonto())
+                                .medioPago(
+                                                dto.getMedioPago() != null
+                                                                ? MedioPagoGasto.valueOf(
+                                                                                dto.getMedioPago().trim().toUpperCase())
+                                                                : null)
+                                .activo(true)
+                                .build();
+
+                gasto = gastoRepository.save(gasto);
+
+                return new BaseResponse<>("Gasto creado correctamente", 201, GastoMapper.toDto(gasto));
         }
 
-        if (dto.getConcepto() == null || dto.getConcepto().trim().isBlank()) {
-            return new BaseResponse<>("El concepto es obligatorio", 400, null);
+        @Override
+        public BaseResponse<List<GastoDto>> listar(
+                        String categoria,
+                        String concepto,
+                        LocalDate fechaDesde,
+                        LocalDate fechaHasta,
+                        String q) {
+                GastoCategoria categoriaEnum = parseCategoria(categoria);
+
+                LocalDate desde = fechaDesde != null ? fechaDesde : LocalDate.of(2000, 1, 1);
+                LocalDate hasta = fechaHasta != null ? fechaHasta : LocalDate.of(2999, 12, 31);
+                String texto = normalizar(q);
+                String conceptoNormalizado = normalizar(concepto);
+
+                List<GastoDto> data = gastoRepository.buscar(categoriaEnum, conceptoNormalizado, desde, hasta, texto)
+                                .stream()
+                                .map(GastoMapper::toDto)
+                                .toList();
+
+                return new BaseResponse<>("Gastos obtenidos correctamente", 200, data);
         }
 
-        if (dto.getMonto() == null || dto.getMonto().compareTo(BigDecimal.ZERO) <= 0) {
-            return new BaseResponse<>("El monto debe ser mayor a 0", 400, null);
+        @Override
+        public BaseResponse<DashboardGastosResponseDto> dashboard(
+                        String categoria,
+                        String concepto,
+                        LocalDate fechaDesde,
+                        LocalDate fechaHasta,
+                        String q) {
+                GastoCategoria categoriaEnum = parseCategoria(categoria);
+                String texto = normalizar(q);
+                String conceptoNormalizado = normalizar(concepto);
+
+                boolean hayFiltroFecha = fechaDesde != null || fechaHasta != null;
+                boolean hayOtrosFiltros = (categoria != null && !categoria.isBlank()) ||
+                                (concepto != null && !concepto.isBlank()) ||
+                                (texto != null && !texto.isBlank());
+
+                LocalDate hoy = LocalDate.now();
+
+                LocalDate desde = hayFiltroFecha
+                                ? (fechaDesde != null ? fechaDesde : LocalDate.of(2000, 1, 1))
+                                : (hayOtrosFiltros ? LocalDate.of(2000, 1, 1) : hoy.withDayOfMonth(1));
+
+                LocalDate hasta = hayFiltroFecha
+                                ? (fechaHasta != null ? fechaHasta : LocalDate.of(2999, 12, 31))
+                                : (hayOtrosFiltros ? LocalDate.of(2999, 12, 31)
+                                                : hoy.withDayOfMonth(hoy.lengthOfMonth()));
+
+                List<GastoDto> gastos = gastoRepository.buscar(categoriaEnum, conceptoNormalizado, desde, hasta, texto)
+                                .stream()
+                                .map(GastoMapper::toDto)
+                                .toList();
+
+                BigDecimal total = gastoRepository.totalDashboardFiltrado(
+                                categoriaEnum, conceptoNormalizado, desde, hasta, texto);
+                Long cantidad = gastoRepository.cantidadDashboardFiltrado(
+                                categoriaEnum, conceptoNormalizado, desde, hasta, texto);
+
+                List<String> ranking = gastoRepository.categoriaMayorGastoDashboardFiltrado(
+                                categoriaEnum, conceptoNormalizado, desde, hasta, texto);
+                String categoriaMayor = ranking.isEmpty() ? "-" : ranking.get(0);
+
+                DashboardGastosResumenDto resumen = DashboardGastosResumenDto.builder()
+                                .totalMes(total)
+                                .cantidadGastosMes(cantidad)
+                                .categoriaMayorGasto(categoriaMayor)
+                                .build();
+
+                DashboardGastosResponseDto response = DashboardGastosResponseDto.builder()
+                                .resumen(resumen)
+                                .gastos(gastos)
+                                .build();
+
+                return new BaseResponse<>("Dashboard de gastos obtenido correctamente", 200, response);
         }
 
-        GastoEntity gasto = GastoEntity.builder()
-                .fecha(dto.getFecha() != null ? dto.getFecha() : LocalDate.now())
-                .categoria(dto.getCategoria())
-                .concepto(dto.getConcepto().trim())
-                .descripcion(dto.getDescripcion() != null ? dto.getDescripcion().trim() : null)
-                .monto(dto.getMonto())
-                .medioPago(
-                        dto.getMedioPago() != null
-                                ? MedioPagoGasto.valueOf(dto.getMedioPago().trim().toUpperCase())
-                                : null
-                )
-                .activo(true)
-                .build();
+        @Override
+        public BaseResponse<GastoDto> actualizar(Long id, GastoUpdateRequestDto request) {
+                GastoEntity gasto = gastoRepository.findById(id)
+                                .orElseThrow(() -> new RuntimeException("No se encontró el gasto con id: " + id));
 
-        gasto = gastoRepository.save(gasto);
+                gasto.setFecha(request.getFecha());
+                gasto.setCategoria(request.getCategoria());
+                gasto.setConcepto(request.getConcepto());
+                gasto.setDescripcion(request.getDescripcion());
+                gasto.setMedioPago(request.getMedioPago());
+                gasto.setMonto(request.getMonto());
 
-        return new BaseResponse<>("Gasto creado correctamente", 201, GastoMapper.toDto(gasto));
-    }
+                GastoEntity actualizado = gastoRepository.save(gasto);
 
-    @Override
-    public BaseResponse<List<GastoDto>> listar(
-            String categoria,
-            String concepto,
-            LocalDate fechaDesde,
-            LocalDate fechaHasta,
-            String q
-    ) {
-        GastoCategoria categoriaEnum = parseCategoria(categoria);
+                GastoDto dto = GastoDto.builder()
+                                .id(actualizado.getId())
+                                .fecha(actualizado.getFecha())
+                                .categoria(actualizado.getCategoria())
+                                .concepto(actualizado.getConcepto())
+                                .descripcion(actualizado.getDescripcion())
+                                .medioPago(actualizado.getMedioPago())
+                                .monto(actualizado.getMonto())
+                                .build();
 
-        LocalDate desde = fechaDesde != null ? fechaDesde : LocalDate.of(2000, 1, 1);
-        LocalDate hasta = fechaHasta != null ? fechaHasta : LocalDate.of(2999, 12, 31);
-        String texto = normalizar(q);
-        String conceptoNormalizado = normalizar(concepto);
-
-        List<GastoDto> data = gastoRepository.buscar(categoriaEnum, conceptoNormalizado, desde, hasta, texto)
-                .stream()
-                .map(GastoMapper::toDto)
-                .toList();
-
-        return new BaseResponse<>("Gastos obtenidos correctamente", 200, data);
-    }
-
-    @Override
-    public BaseResponse<DashboardGastosResponseDto> dashboard(
-            String categoria,
-            String concepto,
-            LocalDate fechaDesde,
-            LocalDate fechaHasta,
-            String q
-    ) {
-        GastoCategoria categoriaEnum = parseCategoria(categoria);
-        String texto = normalizar(q);
-        String conceptoNormalizado = normalizar(concepto);
-
-        boolean hayFiltroFecha = fechaDesde != null || fechaHasta != null;
-        boolean hayOtrosFiltros =
-                (categoria != null && !categoria.isBlank()) ||
-                        (concepto != null && !concepto.isBlank()) ||
-                        (texto != null && !texto.isBlank());
-
-        LocalDate hoy = LocalDate.now();
-
-        LocalDate desde = hayFiltroFecha
-                ? (fechaDesde != null ? fechaDesde : LocalDate.of(2000, 1, 1))
-                : (hayOtrosFiltros ? LocalDate.of(2000, 1, 1) : hoy.withDayOfMonth(1));
-
-        LocalDate hasta = hayFiltroFecha
-                ? (fechaHasta != null ? fechaHasta : LocalDate.of(2999, 12, 31))
-                : (hayOtrosFiltros ? LocalDate.of(2999, 12, 31) : hoy.withDayOfMonth(hoy.lengthOfMonth()));
-
-        List<GastoDto> gastos = gastoRepository.buscar(categoriaEnum, conceptoNormalizado, desde, hasta, texto)
-                .stream()
-                .map(GastoMapper::toDto)
-                .toList();
-
-        BigDecimal total = gastoRepository.totalDashboardFiltrado(
-                categoriaEnum, conceptoNormalizado, desde, hasta, texto
-        );
-        Long cantidad = gastoRepository.cantidadDashboardFiltrado(
-                categoriaEnum, conceptoNormalizado, desde, hasta, texto
-        );
-
-        List<String> ranking = gastoRepository.categoriaMayorGastoDashboardFiltrado(
-                categoriaEnum, conceptoNormalizado, desde, hasta, texto
-        );
-        String categoriaMayor = ranking.isEmpty() ? "-" : ranking.get(0);
-
-        DashboardGastosResumenDto resumen = DashboardGastosResumenDto.builder()
-                .totalMes(total)
-                .cantidadGastosMes(cantidad)
-                .categoriaMayorGasto(categoriaMayor)
-                .build();
-
-        DashboardGastosResponseDto response = DashboardGastosResponseDto.builder()
-                .resumen(resumen)
-                .gastos(gastos)
-                .build();
-
-        return new BaseResponse<>("Dashboard de gastos obtenido correctamente", 200, response);
-    }
-
-    private GastoCategoria parseCategoria(String categoria) {
-        if (categoria == null || categoria.isBlank()) return null;
-        try {
-            return GastoCategoria.valueOf(categoria.trim().toUpperCase());
-        } catch (Exception e) {
-            return null;
+                return BaseResponse.<GastoDto>builder()
+                                .data(dto)
+                                .mensaje("Gasto actualizado correctamente")
+                                .status(200)
+                                .build();
         }
-    }
 
-    private String normalizar(String texto) {
-        if (texto == null || texto.trim().isBlank()) return "";
-        return texto.trim();
-    }
+        private GastoCategoria parseCategoria(String categoria) {
+                if (categoria == null || categoria.isBlank())
+                        return null;
+                try {
+                        return GastoCategoria.valueOf(categoria.trim().toUpperCase());
+                } catch (Exception e) {
+                        return null;
+                }
+        }
+
+        private String normalizar(String texto) {
+                if (texto == null || texto.trim().isBlank())
+                        return "";
+                return texto.trim();
+        }
 }

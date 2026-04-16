@@ -13,11 +13,6 @@ export class App {
 
   showScrollTop = false;
 
-  @HostListener('window:scroll', [])
-  onWindowScroll(): void {
-    this.showScrollTop = window.scrollY > 200;
-  }
-
   scrollTop(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     this.showScrollTop = false;

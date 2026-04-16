@@ -58,6 +58,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
   cargando = false;
   cargandoDisciplinas = false;
   guardando = false;
+  guardandoEdicion = false;
   error: string | null = null;
   ok: string | null = null;
 
@@ -122,6 +123,18 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
     medioPago: '',
   };
 
+  mostrarModalEditar = false;
+  editandoId: number | null = null;
+
+  editForm: GastoCreateRequest = {
+    fecha: '',
+    categoria: '',
+    concepto: '',
+    descripcion: '',
+    monto: null,
+    medioPago: '',
+  };
+
   ngOnInit(): void {
     this.mesActual = this.datePipe.transform(new Date(), "MMMM 'de' yyyy", 'es-AR') ?? '';
     this.cargarDisciplinas();
@@ -161,12 +174,29 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
     return this.conceptosPorCategoria[this.filtros.categoria] || [];
   }
 
+  get conceptosEditarDisponibles(): string[] {
+    if (!this.editForm.categoria) return [];
+
+    if (this.editForm.categoria === 'DISCIPLINAS') {
+      return this.disciplinas
+        .filter((d) => d?.nombre)
+        .map((d) => d.nombre)
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    return this.conceptosPorCategoria[this.editForm.categoria] || [];
+  }
+
   onCategoriaChange(): void {
     this.form.concepto = '';
   }
 
   onFiltroCategoriaChange(): void {
     this.filtros.concepto = '';
+  }
+
+  onEditarCategoriaChange(): void {
+    this.editForm.concepto = '';
   }
 
   cargarDisciplinas(): void {
@@ -311,6 +341,116 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
         },
         error: () => {
           this.error = 'Error al registrar el gasto';
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  abrirEditar(g: Gasto): void {
+    this.error = null;
+    this.ok = null;
+    this.editandoId = g.id ?? null;
+    this.mostrarModalEditar = true;
+
+    this.editForm = {
+      fecha: g.fecha || '',
+      categoria: g.categoria || '',
+      concepto: g.concepto || '',
+      descripcion: g.descripcion || '',
+      monto: g.monto ?? null,
+      medioPago: g.medioPago || '',
+    };
+
+    this.cdr.detectChanges();
+  }
+
+  cerrarEditar(): void {
+    this.mostrarModalEditar = false;
+    this.editandoId = null;
+    this.editForm = {
+      fecha: '',
+      categoria: '',
+      concepto: '',
+      descripcion: '',
+      monto: null,
+      medioPago: '',
+    };
+    this.cdr.detectChanges();
+  }
+
+  guardarEdicion(): void {
+    this.error = null;
+    this.ok = null;
+
+    if (!this.editandoId) {
+      this.error = 'No se encontró el gasto a editar';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.editForm.fecha) {
+      this.error = 'La fecha es obligatoria';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.editForm.categoria) {
+      this.error = 'La categoría es obligatoria';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.editForm.concepto || !this.editForm.concepto.trim()) {
+      this.error = 'El concepto es obligatorio';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.editForm.monto || this.editForm.monto <= 0) {
+      this.error = 'El monto debe ser mayor a 0';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.editForm.medioPago || !this.editForm.medioPago.trim()) {
+      this.error = 'El medio de pago es obligatorio';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.guardandoEdicion = true;
+    this.cdr.detectChanges();
+
+    this.gastosService
+      .actualizar(this.editandoId, {
+        fecha: this.editForm.fecha,
+        categoria: this.editForm.categoria,
+        concepto: this.editForm.concepto.trim(),
+        descripcion: this.editForm.descripcion?.trim() || '',
+        monto: this.editForm.monto,
+        medioPago: this.editForm.medioPago.trim(),
+      })
+      .pipe(
+        finalize(() => {
+          this.guardandoEdicion = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (res) => {
+          if (res.status !== 200 && res.status !== 201) {
+            this.error = res.mensaje || 'No se pudo actualizar el gasto';
+            this.cdr.detectChanges();
+            return;
+          }
+
+          this.ok = 'Gasto actualizado correctamente';
+          this.cerrarEditar();
+          this.cargarDashboard();
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.error = 'Error al actualizar el gasto';
           this.cdr.detectChanges();
         },
       });

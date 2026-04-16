@@ -20,6 +20,10 @@ export class GastosService {
     return this.http.post<BaseResponse<Gasto>>(`${this.base}/api/admin/gastos`, body);
   }
 
+  actualizar(id: number, body: any) {
+    return this.http.put<any>(`${this.base}/api/admin/gastos/${id}`, body);
+  }
+
   listar(filtros?: {
     categoria?: string | null;
     concepto?: string | null;
@@ -83,7 +87,7 @@ export class GastosService {
 
     return this.http.get<BaseResponse<DashboardGastosResponse>>(
       `${this.base}/api/admin/gastos/dashboard`,
-      { params }
+      { params },
     );
   }
 }
