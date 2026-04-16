@@ -2,6 +2,7 @@ package com.example.demo.dto.socio;
 
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
@@ -24,4 +25,9 @@ public class SocioDto {
     private LocalDate vigenciaHasta;
     private String estadoPago;
     private Boolean activo;
+    private Boolean tieneBeca;
+    private BigDecimal porcentajeBecaSocial;
+    private BigDecimal porcentajeBecaDeportiva;
+    private BigDecimal porcentajeBecaPreparacionFisica;
+    private String observacionBeca;
 }

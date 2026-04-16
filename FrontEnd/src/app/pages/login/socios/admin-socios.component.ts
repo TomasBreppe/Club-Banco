@@ -47,6 +47,11 @@ export class AdminSociosComponent implements OnInit {
     disciplinaId: 0,
     arancelDisciplinaId: 0,
     inscripcionPagada: false,
+    tieneBeca: false,
+    porcentajeBecaSocial: 0,
+    porcentajeBecaDeportiva: 0,
+    porcentajeBecaPreparacionFisica: 0,
+    observacionBeca: '',
   };
 
   constructor(
@@ -175,6 +180,25 @@ export class AdminSociosComponent implements OnInit {
       return;
     }
 
+    if (this.form.tieneBeca) {
+      const social = Number(this.form.porcentajeBecaSocial ?? 0);
+      const deportiva = Number(this.form.porcentajeBecaDeportiva ?? 0);
+      const preparacion = Number(this.form.porcentajeBecaPreparacionFisica ?? 0);
+
+      if (
+        social < 0 ||
+        social > 100 ||
+        deportiva < 0 ||
+        deportiva > 100 ||
+        preparacion < 0 ||
+        preparacion > 100
+      ) {
+        this.error = 'Los porcentajes de beca deben estar entre 0 y 100';
+        this.cdr.detectChanges();
+        return;
+      }
+    }
+
     this.creating = true;
     this.cdr.detectChanges();
 
@@ -185,6 +209,15 @@ export class AdminSociosComponent implements OnInit {
       apellido: this.form.apellido.trim(),
       celular: this.form.celular.trim(),
       telefono: (this.form.telefono ?? '').trim(),
+      tieneBeca: !!this.form.tieneBeca,
+      porcentajeBecaSocial: this.form.tieneBeca ? Number(this.form.porcentajeBecaSocial ?? 0) : 0,
+      porcentajeBecaDeportiva: this.form.tieneBeca
+        ? Number(this.form.porcentajeBecaDeportiva ?? 0)
+        : 0,
+      porcentajeBecaPreparacionFisica: this.form.tieneBeca
+        ? Number(this.form.porcentajeBecaPreparacionFisica ?? 0)
+        : 0,
+      observacionBeca: this.form.tieneBeca ? this.form.observacionBeca?.trim() || '' : '',
     };
 
     this.sociosApi
@@ -218,6 +251,11 @@ export class AdminSociosComponent implements OnInit {
             disciplinaId,
             arancelDisciplinaId: 0,
             inscripcionPagada: false,
+            tieneBeca: false,
+            porcentajeBecaSocial: 0,
+            porcentajeBecaDeportiva: 0,
+            porcentajeBecaPreparacionFisica: 0,
+            observacionBeca: '',
           };
 
           f.resetForm(this.form);

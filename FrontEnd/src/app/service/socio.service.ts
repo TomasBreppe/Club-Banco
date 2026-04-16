@@ -37,6 +37,10 @@ export class SociosService {
     );
   }
 
+  actualizarBeca(socioId: number, body: any) {
+    return this.http.put<any>(`${this.base}/api/admin/socios/${socioId}/beca`, body);
+  }
+
   cambiarActivo(id: number, valor: boolean) {
     return this.http.patch<BaseResponse<SocioDto>>(
       `${this.base}/api/admin/socios/${id}/activo?valor=${valor}`,

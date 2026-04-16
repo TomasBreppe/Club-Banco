@@ -43,6 +43,14 @@ interface AgregarDisciplinaForm {
   inscripcionPagada: boolean;
 }
 
+interface BecaForm {
+  tieneBeca: boolean;
+  porcentajeBecaSocial: number | null;
+  porcentajeBecaDeportiva: number | null;
+  porcentajeBecaPreparacionFisica: number | null;
+  observacionBeca: string;
+}
+
 @Component({
   standalone: true,
   selector: 'app-admin-socio-detalle',
@@ -80,6 +88,18 @@ export class AdminSocioDetalleComponent implements OnInit {
     inscripcionPagada: false,
   };
 
+  editandoBeca = false;
+  guardandoBeca = false;
+  becaError: string | null = null;
+  becaOk: string | null = null;
+
+  becaForm: BecaForm = {
+    tieneBeca: false,
+    porcentajeBecaSocial: 0,
+    porcentajeBecaDeportiva: 0,
+    porcentajeBecaPreparacionFisica: 0,
+    observacionBeca: '',
+  };
   constructor(
     private route: ActivatedRoute,
     private api: SociosService,
@@ -163,6 +183,25 @@ export class AdminSocioDetalleComponent implements OnInit {
           }
 
           this.data = incoming;
+
+          setTimeout(() => {
+            const disciplinas = this.data?.disciplinas ?? [];
+            for (const d of disciplinas) {
+              const arancel = this.arancelSeleccionadoPorDisciplina[d.disciplinaId];
+              if (arancel) {
+                this.cargarMontosConBeca(d, arancel);
+              }
+            }
+            this.cdr.detectChanges();
+          }, 0);
+
+          this.becaForm = {
+            tieneBeca: incoming.tieneBeca ?? false,
+            porcentajeBecaSocial: incoming.porcentajeBecaSocial ?? 0,
+            porcentajeBecaDeportiva: incoming.porcentajeBecaDeportiva ?? 0,
+            porcentajeBecaPreparacionFisica: incoming.porcentajeBecaPreparacionFisica ?? 0,
+            observacionBeca: incoming.observacionBeca ?? '',
+          };
 
           const disciplinas = this.data.disciplinas ?? [];
           for (const d of disciplinas) {
@@ -289,6 +328,79 @@ export class AdminSocioDetalleComponent implements OnInit {
       this.resetAgregarDisciplinaForm();
       this.cargarDisciplinasDisponibles();
     }
+  }
+
+  toggleEditarBeca(): void {
+    this.editandoBeca = !this.editandoBeca;
+    this.becaError = null;
+    this.becaOk = null;
+
+    if (this.editandoBeca && this.data) {
+      this.becaForm = {
+        tieneBeca: this.data.tieneBeca ?? false,
+        porcentajeBecaSocial: this.data.porcentajeBecaSocial ?? 0,
+        porcentajeBecaDeportiva: this.data.porcentajeBecaDeportiva ?? 0,
+        porcentajeBecaPreparacionFisica: this.data.porcentajeBecaPreparacionFisica ?? 0,
+        observacionBeca: this.data.observacionBeca ?? '',
+      };
+    }
+
+    this.cdr.detectChanges();
+  }
+
+  guardarBeca(): void {
+    if (!this.data?.socioId) {
+      this.becaError = 'Socio inválido';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const social = Number(this.becaForm.porcentajeBecaSocial ?? 0);
+    const deportiva = Number(this.becaForm.porcentajeBecaDeportiva ?? 0);
+    const prep = Number(this.becaForm.porcentajeBecaPreparacionFisica ?? 0);
+
+    if (social < 0 || social > 100 || deportiva < 0 || deportiva > 100 || prep < 0 || prep > 100) {
+      this.becaError = 'Los porcentajes de beca deben estar entre 0 y 100';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.guardandoBeca = true;
+    this.becaError = null;
+    this.becaOk = null;
+    this.cdr.detectChanges();
+
+    this.api
+      .actualizarBeca(this.data.socioId, {
+        tieneBeca: !!this.becaForm.tieneBeca,
+        porcentajeBecaSocial: this.becaForm.tieneBeca ? social : 0,
+        porcentajeBecaDeportiva: this.becaForm.tieneBeca ? deportiva : 0,
+        porcentajeBecaPreparacionFisica: this.becaForm.tieneBeca ? prep : 0,
+        observacionBeca: this.becaForm.tieneBeca ? this.becaForm.observacionBeca?.trim() || '' : '',
+      })
+      .pipe(
+        finalize(() => {
+          this.guardandoBeca = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (res: any) => {
+          if (res?.status !== 200 && res?.status !== 201) {
+            this.becaError = res?.mensaje || 'No se pudo actualizar la beca';
+            this.cdr.detectChanges();
+            return;
+          }
+
+          this.becaOk = 'Beca actualizada correctamente';
+          this.editandoBeca = false;
+          this.cargar(this.data!.socioId);
+        },
+        error: (err) => {
+          this.becaError = err?.error?.mensaje || 'Error actualizando la beca';
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   resetAgregarDisciplinaForm(): void {
@@ -427,7 +539,9 @@ export class AdminSocioDetalleComponent implements OnInit {
     if (seleccionado) {
       form.arancelDisciplinaId = seleccionado.id;
       this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = seleccionado;
-      this.onArancelChangeDisciplina(d);
+
+      this.cargarMontosConBeca(d, seleccionado);
+      this.cargarMontosDesdeDeuda(d);
     }
 
     this.autocompletarPagoDisciplina(d);
@@ -469,13 +583,8 @@ export class AdminSocioDetalleComponent implements OnInit {
       return;
     }
 
-    const esPrincipal = this.esDisciplinaPrincipal(d);
-
-    form.categoria = seleccionado.categoria;
-    form.montoSocial = esPrincipal ? Number(seleccionado.montoSocial ?? 0) : 0;
-    form.montoDisciplina = Number(seleccionado.montoDeportivo ?? 0);
-    form.montoPreparacionFisica = Number(seleccionado.montoPreparacionFisica ?? 0);
-    this.recalcularMontoTotalDisciplina(d);
+    this.cargarMontosConBeca(d, seleccionado);
+    this.cargarMontosDesdeDeuda(d);
 
     if (
       form.concepto === 'CUOTA_MENSUAL' &&
@@ -495,6 +604,56 @@ export class AdminSocioDetalleComponent implements OnInit {
       Number(form.montoPreparacionFisica ?? 0);
 
     form.montoTotal = total;
+  }
+
+  private aplicarBeca(montoBase: number, porcentajeBeca: number | null | undefined): number {
+    const base = Number(montoBase ?? 0);
+    const beca = Number(porcentajeBeca ?? 0);
+
+    if (beca <= 0) return base;
+    if (beca >= 100) return 0;
+
+    const descuento = (base * beca) / 100;
+    return Number((base - descuento).toFixed(2));
+  }
+
+  private cargarMontosConBeca(d: SocioDisciplinaResumenVm, arancel: ArancelDisciplinaDto): void {
+    const form = this.pagoForms[d.disciplinaId];
+    if (!form || !this.data) return;
+
+    const esPrincipal = this.esDisciplinaPrincipal(d);
+
+    form.categoria = arancel.categoria;
+    form.montoSocial = esPrincipal
+      ? this.aplicarBeca(Number(arancel.montoSocial ?? 0), this.data.porcentajeBecaSocial)
+      : 0;
+
+    form.montoDisciplina = this.aplicarBeca(
+      Number(arancel.montoDeportivo ?? 0),
+      this.data.porcentajeBecaDeportiva,
+    );
+
+    form.montoPreparacionFisica = this.aplicarBeca(
+      Number(arancel.montoPreparacionFisica ?? 0),
+      this.data.porcentajeBecaPreparacionFisica,
+    );
+
+    this.recalcularMontoTotalDisciplina(d);
+  }
+
+  private cargarMontosDesdeDeuda(d: SocioDisciplinaResumenVm): void {
+    const form = this.pagoForms[d.disciplinaId];
+    if (!form) return;
+
+    const deuda = d.deuda;
+    const primerAdeudado = deuda?.items?.find((i) => !i.pagado && i.periodo !== 'INSCRIPCION');
+
+    const montoExacto = Number(primerAdeudado?.monto ?? deuda?.montoMensual ?? 0);
+
+    form.montoSocial = 0;
+    form.montoDisciplina = 0;
+    form.montoPreparacionFisica = 0;
+    form.montoTotal = montoExacto;
   }
 
   autocompletarPagoDisciplina(d: SocioDisciplinaResumenVm): void {
@@ -523,12 +682,11 @@ export class AdminSocioDetalleComponent implements OnInit {
 
       const arancel = this.arancelSeleccionadoPorDisciplina[d.disciplinaId];
       if (arancel) {
-        form.categoria = arancel.categoria;
-        form.montoSocial = esPrincipal ? Number(arancel.montoSocial ?? 0) : 0;
-        form.montoDisciplina = Number(arancel.montoDeportivo ?? 0);
-        form.montoPreparacionFisica = Number(arancel.montoPreparacionFisica ?? 0);
-        this.recalcularMontoTotalDisciplina(d);
+        this.cargarMontosConBeca(d, arancel);
       }
+
+      // 🔥 esto pisa el total con el valor exacto de la deuda
+      this.cargarMontosDesdeDeuda(d);
 
       return;
     }

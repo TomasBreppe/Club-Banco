@@ -4,6 +4,7 @@ import com.example.demo.dto.deuda.DeudaResponseDto;
 import com.example.demo.dto.pagos.PagoDto;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -27,6 +28,12 @@ public class SocioResumenDto {
     private Long arancelDisciplinaId;
     private String categoriaArancel;
 
+    private Boolean tieneBeca;
+    private BigDecimal porcentajeBecaSocial;
+    private BigDecimal porcentajeBecaDeportiva;
+    private BigDecimal porcentajeBecaPreparacionFisica;
+    private String observacionBeca;
+    
     private DeudaResponseDto deuda;
     private List<PagoDto> ultimosPagos;
     private List<SocioDisciplinaResumenDto> disciplinas;

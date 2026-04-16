@@ -43,6 +43,11 @@ export interface SocioResumenDto {
   categoriaArancel?: string | null;
   deuda: DeudaResponseDto | null;
   ultimosPagos: PagoDto[];
+  tieneBeca: boolean;
+  porcentajeBecaSocial: number;
+  porcentajeBecaDeportiva: number;
+  porcentajeBecaPreparacionFisica: number;
+  observacionBeca: string;
 
   // nuevo
   disciplinas?: SocioDisciplinaResumenDto[];

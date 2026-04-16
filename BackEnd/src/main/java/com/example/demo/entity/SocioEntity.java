@@ -3,6 +3,7 @@ package com.example.demo.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -47,9 +48,26 @@ public class SocioEntity {
     @Builder.Default
     private java.util.List<SocioDisciplinaEntity> socioDisciplinas = new java.util.ArrayList<>();
 
+    @Column(nullable = false)
+    private Boolean tieneBeca = false;
+
+    @Column(name = "porcentaje_beca_social", precision = 5, scale = 2)
+    private BigDecimal porcentajeBecaSocial = BigDecimal.ZERO;
+
+    @Column(name = "porcentaje_beca_deportiva", precision = 5, scale = 2)
+    private BigDecimal porcentajeBecaDeportiva = BigDecimal.ZERO;
+
+    @Column(name = "porcentaje_beca_preparacion_fisica", precision = 5, scale = 2)
+    private BigDecimal porcentajeBecaPreparacionFisica = BigDecimal.ZERO;
+
+    @Column(name = "observacion_beca", length = 255)
+    private String observacionBeca;
+
     @PrePersist
     public void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
-        if (activo == null) activo = true;
+        if (createdAt == null)
+            createdAt = LocalDateTime.now();
+        if (activo == null)
+            activo = true;
     }
 }

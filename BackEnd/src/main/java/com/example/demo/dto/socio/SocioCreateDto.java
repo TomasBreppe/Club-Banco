@@ -2,6 +2,8 @@ package com.example.demo.dto.socio;
 
 import lombok.*;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.*;
 
 @Getter
@@ -39,4 +41,10 @@ public class SocioCreateDto {
     private Long arancelDisciplinaId;
 
     private Boolean inscripcionPagada;
+
+    private Boolean tieneBeca;
+    private BigDecimal porcentajeBecaSocial;
+    private BigDecimal porcentajeBecaDeportiva;
+    private BigDecimal porcentajeBecaPreparacionFisica;
+    private String observacionBeca; 
 }

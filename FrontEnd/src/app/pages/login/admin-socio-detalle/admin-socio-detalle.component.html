@@ -5,7 +5,7 @@
       <span class="h4 m-0">Detalle socio</span>
     </div>
 
-    <button class="btn btn-primary btn-sm" (click)="toggleAgregarDisciplina()">
+    <button class="btn-pill btn-pill-primary" (click)="toggleAgregarDisciplina()">
       + Agregar disciplina
     </button>
   </div>
@@ -75,7 +75,7 @@
 
       <div class="mt-3 d-flex justify-content-end gap-2 flex-wrap">
         <button
-          class="btn btn-outline-secondary"
+          class="btn-pill btn-pill-primary"
           type="button"
           (click)="toggleAgregarDisciplina()"
           [disabled]="agregarDisciplinaLoading"
@@ -216,6 +216,161 @@
                           {{ tieneDeudaDisciplina(disc) ? 'DEBE' : 'AL DÍA' }}
                         </span>
                       </div>
+
+                      <div class="col-12 mt-3">
+                        <div
+                          class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3"
+                        >
+                          <div>
+                            <div class="text-muted small">Beca</div>
+                            <div class="fw-semibold">
+                              {{ d.tieneBeca ? 'Configurada' : 'Sin beca' }}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            class="btn-pill btn-pill-primary"
+                            (click)="toggleEditarBeca()"
+                          >
+                            {{ editandoBeca ? 'Cancelar edición' : 'Editar beca' }}
+                          </button>
+                        </div>
+
+                        <div *ngIf="becaError" class="alert alert-danger">
+                          {{ becaError }}
+                        </div>
+
+                        <div *ngIf="becaOk" class="alert alert-success">
+                          {{ becaOk }}
+                        </div>
+
+                        <!-- MODO SOLO LECTURA -->
+                        <div *ngIf="!editandoBeca" class="row g-3" [class.beca-box]="d.tieneBeca">
+                          <div class="col-12 col-sm-6">
+                            <div class="text-muted small">Tiene beca</div>
+                            <span
+                              class="badge"
+                              [class.bg-success]="d.tieneBeca"
+                              [class.bg-secondary]="!d.tieneBeca"
+                            >
+                              {{ d.tieneBeca ? 'Sí' : 'No' }}
+                            </span>
+                          </div>
+
+                          <ng-container *ngIf="d.tieneBeca">
+                            <div class="col-12 col-sm-4">
+                              <div class="text-muted small">% beca social</div>
+                              <div class="fw-semibold">{{ d.porcentajeBecaSocial || 0 }}%</div>
+                            </div>
+
+                            <div class="col-12 col-sm-4">
+                              <div class="text-muted small">% beca deportiva</div>
+                              <div class="fw-semibold">{{ d.porcentajeBecaDeportiva || 0 }}%</div>
+                            </div>
+
+                            <div class="col-12 col-sm-4">
+                              <div class="text-muted small">% beca prep. física</div>
+                              <div class="fw-semibold">
+                                {{ d.porcentajeBecaPreparacionFisica || 0 }}%
+                              </div>
+                            </div>
+
+                            <div class="col-12" *ngIf="d.observacionBeca">
+                              <div class="text-muted small">Observación</div>
+                              <div class="fw-semibold">{{ d.observacionBeca }}</div>
+                            </div>
+                          </ng-container>
+                        </div>
+
+                        <!-- MODO EDICIÓN -->
+                        <div *ngIf="editandoBeca" class="row g-3">
+                          <div class="col-12 col-md-3">
+                            <label class="form-label">¿Tiene beca?</label>
+                            <select
+                              class="form-select"
+                              [(ngModel)]="becaForm.tieneBeca"
+                              name="becaTieneBeca"
+                            >
+                              <option [ngValue]="false">No</option>
+                              <option [ngValue]="true">Sí</option>
+                            </select>
+                          </div>
+
+                          <ng-container *ngIf="becaForm.tieneBeca">
+                            <div class="col-12 col-md-3">
+                              <label class="form-label">% beca social</label>
+                              <input
+                                type="number"
+                                class="form-control"
+                                [(ngModel)]="becaForm.porcentajeBecaSocial"
+                                name="becaSocial"
+                                min="0"
+                                max="100"
+                              />
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                              <label class="form-label">% beca deportiva</label>
+                              <input
+                                type="number"
+                                class="form-control"
+                                [(ngModel)]="becaForm.porcentajeBecaDeportiva"
+                                name="becaDeportiva"
+                                min="0"
+                                max="100"
+                              />
+                            </div>
+
+                            <div class="col-12 col-md-3">
+                              <label class="form-label">% beca prep. física</label>
+                              <input
+                                type="number"
+                                class="form-control"
+                                [(ngModel)]="becaForm.porcentajeBecaPreparacionFisica"
+                                name="becaPrep"
+                                min="0"
+                                max="100"
+                              />
+                            </div>
+
+                            <div class="col-12">
+                              <label class="form-label">Observación</label>
+                              <input
+                                type="text"
+                                class="form-control"
+                                [(ngModel)]="becaForm.observacionBeca"
+                                name="becaObservacion"
+                                placeholder="Ej: media beca deportiva"
+                              />
+                            </div>
+                          </ng-container>
+
+                          <div class="col-12 d-flex justify-content-end gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              class="btn-pill btn-pill-primary"
+                              (click)="toggleEditarBeca()"
+                              [disabled]="guardandoBeca"
+                            >
+                              Cancelar
+                            </button>
+
+                            <button
+                              type="button"
+                              class="btn-pill btn-pill-primary"
+                              (click)="guardarBeca()"
+                              [disabled]="guardandoBeca"
+                            >
+                              <span
+                                *ngIf="guardandoBeca"
+                                class="spinner-border spinner-border-sm me-2"
+                              ></span>
+                              Guardar beca
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -243,8 +398,17 @@
                         </div>
 
                         <div class="col-12 col-sm-4">
-                          <div class="text-muted small">Monto mensual</div>
-                          <div class="fw-semibold">${{ disc.deuda.montoMensual ?? 0 }}</div>
+                          <div class="text-muted small">
+                            {{ d.tieneBeca ? 'Monto mensual a pagar' : 'Monto mensual' }}
+                          </div>
+
+                          <div class="fw-semibold monto-mensual-final">
+                            ${{ disc.deuda.montoMensual ?? 0 }}
+                          </div>
+
+                          <div *ngIf="d.tieneBeca" class="small text-success d-block fw-bold mt-1">
+                            Con beca aplicada
+                          </div>
                         </div>
 
                         <div class="col-12">
@@ -312,7 +476,12 @@
                         <tbody>
                           <tr *ngFor="let item of disc.deuda?.items">
                             <td>{{ formatearPeriodo(item.periodo) }}</td>
-                            <td>${{ item.monto }}</td>
+                            <td>
+                              <div class="fw-semibold">${{ item.monto }}</div>
+                              <small *ngIf="d.tieneBeca" class="text-success d-block fw-bold"
+                                >Con beca</small
+                              >
+                            </td>
                             <td>
                               <span
                                 class="badge"
@@ -339,6 +508,10 @@
             <div class="row g-3 mt-1">
               <div class="col-12">
                 <div class="card shadow-sm">
+                  <div *ngIf="d.tieneBeca" class="alert alert-success mb-3">
+                    Este socio tiene beca configurada. Los montos mostrados ya incluyen el
+                    descuento.
+                  </div>
                   <div class="card-header fw-semibold">Registrar pago manual</div>
                   <div class="card-body">
                     <div
@@ -420,7 +593,12 @@
                       </div>
 
                       <div class="col-12 col-md-3">
-                        <label class="form-label">Monto social</label>
+                        <label class="form-label">
+                          Monto social
+                          <small *ngIf="d.tieneBeca" class="text-success d-block"
+                            >Final con beca</small
+                          >
+                        </label>
                         <input
                           type="number"
                           class="form-control"
@@ -431,7 +609,12 @@
                       </div>
 
                       <div class="col-12 col-md-3">
-                        <label class="form-label">Monto deportivo</label>
+                        <label class="form-label">
+                          Monto deportivo
+                          <small *ngIf="d.tieneBeca" class="text-success d-block"
+                            >Final con beca</small
+                          >
+                        </label>
                         <input
                           type="number"
                           class="form-control"
@@ -442,7 +625,12 @@
                       </div>
 
                       <div class="col-12 col-md-3">
-                        <label class="form-label">Prep. física</label>
+                        <label class="form-label">
+                          Prep. física
+                          <small *ngIf="d.tieneBeca" class="text-success d-block"
+                            >Final con beca</small
+                          >
+                        </label>
                         <input
                           type="number"
                           class="form-control"
@@ -453,7 +641,12 @@
                       </div>
 
                       <div class="col-12 col-md-3">
-                        <label class="form-label">Monto total</label>
+                        <label class="form-label">
+                          Monto total
+                          <small *ngIf="d.tieneBeca" class="text-success d-block"
+                            >Total con beca</small
+                          >
+                        </label>
                         <input
                           type="number"
                           class="form-control"
@@ -478,7 +671,7 @@
 
                     <div class="mt-3 d-flex justify-content-end gap-2 acciones-pago">
                       <button
-                        class="btn btn-primary"
+                        class="btn-pill btn-pill-primary"
                         (click)="registrarPagoDisciplina(disc)"
                         [disabled]="loading"
                       >

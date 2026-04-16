@@ -7,7 +7,7 @@
   </div>
 
   <button
-    class="btn btn-outline-secondary"
+    class="btn-pill btn-pill-primary"
     (click)="refrescar()"
     [disabled]="loadingInit || loadingList"
   >
@@ -195,10 +195,76 @@
           Marcar si el socio ya había pagado la inscripción
         </label>
       </div>
+
+      <div class="col-12 mt-3">
+        <div class="card">
+          <div class="card-header">Beca</div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label class="form-label">¿Tiene beca?</label>
+                <select class="form-select" [(ngModel)]="form.tieneBeca" name="tieneBeca">
+                  <option [ngValue]="false">No</option>
+                  <option [ngValue]="true">Sí</option>
+                </select>
+              </div>
+
+              <ng-container *ngIf="form.tieneBeca">
+                <div class="col-md-3">
+                  <label class="form-label">% beca social</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    [(ngModel)]="form.porcentajeBecaSocial"
+                    name="porcentajeBecaSocial"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label">% beca deportiva</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    [(ngModel)]="form.porcentajeBecaDeportiva"
+                    name="porcentajeBecaDeportiva"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+
+                <div class="col-md-3">
+                  <label class="form-label">% beca preparación física</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    [(ngModel)]="form.porcentajeBecaPreparacionFisica"
+                    name="porcentajeBecaPreparacionFisica"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label">Observación de beca</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    [(ngModel)]="form.observacionBeca"
+                    name="observacionBeca"
+                    placeholder="Ej: media beca deportiva"
+                  />
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="mt-3 d-flex justify-content-end">
-      <button class="btn btn-primary" type="submit" [disabled]="creating">
+      <button class="btn-pill btn-pill-primary" type="submit" [disabled]="creating">
         <span *ngIf="creating" class="spinner-border spinner-border-sm me-2"></span>
         Crear socio
       </button>
@@ -305,7 +371,10 @@
           <tr *ngFor="let s of sociosPaginados">
             <td>{{ s.id }}</td>
             <td>{{ s.dni }}</td>
-            <td>{{ s.apellido }}, {{ s.nombre }}</td>
+            <td>
+              <div>{{ s.apellido }}, {{ s.nombre }}</div>
+              <small *ngIf="s.tieneBeca" class="text-success fw-semibold">Becado</small>
+            </td>
             <td>
               <div>{{ s.disciplinaNombre || disciplinaNombre(s.disciplinaId) }}</div>
               <small class="text-muted">{{ s.categoriaArancel || '-' }}</small>

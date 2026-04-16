@@ -185,7 +185,8 @@ public class FinanzasServiceImpl implements FinanzasService {
                                         fechaPeriodo)
                                 .orElse(arancelActual);
 
-                        BigDecimal montoPeriodo = calcularMontoArancelSegunOrden(arancelPeriodo, esPrimeraDisciplina);
+                        BigDecimal montoPeriodo = calcularMontoArancelConBeca(arancelPeriodo, socio,
+                                esPrimeraDisciplina);
 
                         return DeudaItemDto.builder()
                                 .periodo(p)
@@ -216,7 +217,7 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .nombreCompleto(socio.getNombre() + " " + socio.getApellido())
                 .disciplina(socioDisciplina.getDisciplina().getNombre())
                 .vigenciaHasta(socioDisciplina.getVigenciaHasta())
-                .montoMensual(calcularMontoArancelSegunOrden(arancelActual, esPrimeraDisciplina))
+                .montoMensual(calcularMontoArancelConBeca(arancelActual, socio, esPrimeraDisciplina))
                 .mesesAdeudados(mesesAdeudados)
                 .totalAdeudado(totalAdeudado)
                 .items(items)
@@ -343,13 +344,17 @@ public class FinanzasServiceImpl implements FinanzasService {
             disciplina = arancel.getDisciplina();
 
             if (esPrimeraDisciplina) {
-                montoSocial = safe(arancel.getMontoSocial());
-                montoDisciplina = safe(arancel.getMontoDeportivo());
-                montoPreparacionFisica = safe(arancel.getMontoPreparacionFisica());
+                montoSocial = aplicarBeca(arancel.getMontoSocial(), socio.getPorcentajeBecaSocial());
+                montoDisciplina = aplicarBeca(arancel.getMontoDeportivo(), socio.getPorcentajeBecaDeportiva());
+                montoPreparacionFisica = aplicarBeca(
+                        arancel.getMontoPreparacionFisica(),
+                        socio.getPorcentajeBecaPreparacionFisica());
             } else {
                 montoSocial = BigDecimal.ZERO;
-                montoDisciplina = safe(arancel.getMontoDeportivo());
-                montoPreparacionFisica = safe(arancel.getMontoPreparacionFisica());
+                montoDisciplina = aplicarBeca(arancel.getMontoDeportivo(), socio.getPorcentajeBecaDeportiva());
+                montoPreparacionFisica = aplicarBeca(
+                        arancel.getMontoPreparacionFisica(),
+                        socio.getPorcentajeBecaPreparacionFisica());
             }
 
             montoTotal = montoSocial.add(montoDisciplina).add(montoPreparacionFisica);
@@ -504,6 +509,11 @@ public class FinanzasServiceImpl implements FinanzasService {
                         .vigenciaHasta(sd.getVigenciaHasta())
                         .inscripcionPagada(sd.getInscripcionPagada())
                         .deuda(calcularDeudaPorDisciplina(socio, sd))
+                        .tieneBeca(socio.getTieneBeca())
+                        .porcentajeBecaSocial(socio.getPorcentajeBecaSocial())
+                        .porcentajeBecaDeportiva(socio.getPorcentajeBecaDeportiva())
+                        .porcentajeBecaPreparacionFisica(socio.getPorcentajeBecaPreparacionFisica())
+                        .observacionBeca(socio.getObservacionBeca())
                         .build())
                 .toList();
 
@@ -538,6 +548,11 @@ public class FinanzasServiceImpl implements FinanzasService {
                 .deuda(deudaPrincipal)
                 .ultimosPagos(ultimos)
                 .disciplinas(disciplinas)
+                .tieneBeca(socio.getTieneBeca())
+                .porcentajeBecaSocial(socio.getPorcentajeBecaSocial())
+                .porcentajeBecaDeportiva(socio.getPorcentajeBecaDeportiva())
+                .porcentajeBecaPreparacionFisica(socio.getPorcentajeBecaPreparacionFisica())
+                .observacionBeca(socio.getObservacionBeca())
                 .build();
 
         return BaseResponse.ok("Resumen OK", resumen);
@@ -880,6 +895,45 @@ public class FinanzasServiceImpl implements FinanzasService {
 
     private BigDecimal safe(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private BigDecimal aplicarBeca(BigDecimal montoBase, BigDecimal porcentajeBeca) {
+        BigDecimal base = safe(montoBase);
+        BigDecimal beca = safe(porcentajeBeca);
+
+        if (beca.compareTo(BigDecimal.ZERO) <= 0) {
+            return base;
+        }
+
+        if (beca.compareTo(BigDecimal.valueOf(100)) > 0) {
+            beca = BigDecimal.valueOf(100);
+        }
+
+        BigDecimal descuento = base
+                .multiply(beca)
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+
+        return base.subtract(descuento);
+    }
+
+    private BigDecimal calcularMontoArancelConBeca(
+            ArancelDisciplinaEntity a,
+            SocioEntity socio,
+            boolean esPrimeraDisciplina) {
+        if (a == null) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal social = esPrimeraDisciplina
+                ? aplicarBeca(a.getMontoSocial(), socio.getPorcentajeBecaSocial())
+                : BigDecimal.ZERO;
+
+        BigDecimal deportivo = aplicarBeca(a.getMontoDeportivo(), socio.getPorcentajeBecaDeportiva());
+        BigDecimal preparacion = aplicarBeca(
+                a.getMontoPreparacionFisica(),
+                socio.getPorcentajeBecaPreparacionFisica());
+
+        return safe(social).add(safe(deportivo)).add(safe(preparacion));
     }
 
     private BigDecimal calcularMontoArancel(ArancelDisciplinaEntity a) {

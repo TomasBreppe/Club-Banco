@@ -2,6 +2,7 @@ package com.example.demo.controller.admin;
 
 import com.example.demo.config.BaseResponse;
 import com.example.demo.dto.socio.SocioAgregarDisciplinaDto;
+import com.example.demo.dto.socio.SocioBecaUpdateDto;
 import com.example.demo.dto.socio.SocioCreateDto;
 import com.example.demo.dto.socio.SocioDto;
 import com.example.demo.dto.socio.SocioResumenDto;
@@ -52,5 +53,12 @@ public class AdminSocioController {
             @PathVariable Long id,
             @RequestBody SocioAgregarDisciplinaDto dto) {
         return socioService.agregarDisciplina(id, dto);
+    }
+
+    @PutMapping("/{socioId}/beca")
+    public BaseResponse<SocioDto> actualizarBeca(
+            @PathVariable Long socioId,
+            @RequestBody SocioBecaUpdateDto dto) {
+        return socioService.actualizarBeca(socioId, dto);
     }
 }

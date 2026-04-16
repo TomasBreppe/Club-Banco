@@ -21,6 +21,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -76,6 +77,18 @@ public class SocioServiceImpl implements SocioService {
                                 .telefono(dto.getTelefono() != null ? dto.getTelefono().trim() : null)
                                 .celular(dto.getCelular().trim())
                                 .activo(true)
+                                .tieneBeca(dto.getTieneBeca() != null ? dto.getTieneBeca() : false)
+                                .porcentajeBecaSocial(
+                                                dto.getPorcentajeBecaSocial() != null ? dto.getPorcentajeBecaSocial()
+                                                                : BigDecimal.ZERO)
+                                .porcentajeBecaDeportiva(dto.getPorcentajeBecaDeportiva() != null
+                                                ? dto.getPorcentajeBecaDeportiva()
+                                                : BigDecimal.ZERO)
+                                .porcentajeBecaPreparacionFisica(dto.getPorcentajeBecaPreparacionFisica() != null
+                                                ? dto.getPorcentajeBecaPreparacionFisica()
+                                                : BigDecimal.ZERO)
+                                .observacionBeca(dto.getObservacionBeca() != null ? dto.getObservacionBeca().trim()
+                                                : null)
                                 .build();
 
                 SocioEntity saved = socioRepository.save(socio);
@@ -236,5 +249,44 @@ public class SocioServiceImpl implements SocioService {
                 socioDisciplinaRepository.save(nueva);
 
                 return BaseResponse.ok("Disciplina agregada correctamente", SocioMapper.toDto(socio, nueva));
+        }
+
+        @Override
+        @Transactional
+        public BaseResponse<SocioDto> actualizarBeca(Long socioId, SocioBecaUpdateDto dto) {
+                SocioEntity socio = socioRepository.findById(socioId)
+                                .orElseThrow(() -> new IllegalArgumentException("Socio inexistente"));
+
+                socio.setTieneBeca(dto.getTieneBeca() != null ? dto.getTieneBeca() : false);
+                socio.setPorcentajeBecaSocial(normalizarPorcentaje(dto.getPorcentajeBecaSocial()));
+                socio.setPorcentajeBecaDeportiva(normalizarPorcentaje(dto.getPorcentajeBecaDeportiva()));
+                socio.setPorcentajeBecaPreparacionFisica(
+                                normalizarPorcentaje(dto.getPorcentajeBecaPreparacionFisica()));
+                socio.setObservacionBeca(dto.getObservacionBeca() != null ? dto.getObservacionBeca().trim() : null);
+
+                if (!Boolean.TRUE.equals(socio.getTieneBeca())) {
+                        socio.setPorcentajeBecaSocial(BigDecimal.ZERO);
+                        socio.setPorcentajeBecaDeportiva(BigDecimal.ZERO);
+                        socio.setPorcentajeBecaPreparacionFisica(BigDecimal.ZERO);
+                        socio.setObservacionBeca(null);
+                }
+
+                SocioEntity saved = socioRepository.save(socio);
+
+                SocioDisciplinaEntity sd = socioDisciplinaRepository
+                                .findFirstBySocio_IdAndActivoTrueOrderByIdAsc(saved.getId())
+                                .orElse(null);
+
+                return BaseResponse.ok("Beca actualizada correctamente", SocioMapper.toDto(saved, sd));
+        }
+
+        private BigDecimal normalizarPorcentaje(BigDecimal value) {
+                if (value == null)
+                        return BigDecimal.ZERO;
+                if (value.compareTo(BigDecimal.ZERO) < 0)
+                        return BigDecimal.ZERO;
+                if (value.compareTo(BigDecimal.valueOf(100)) > 0)
+                        return BigDecimal.valueOf(100);
+                return value;
         }
 }

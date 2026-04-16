@@ -29,6 +29,11 @@ public class SocioMapper {
                                 .categoriaArancel(sd != null && sd.getArancelDisciplina() != null
                                                 ? sd.getArancelDisciplina().getCategoria()
                                                 : null)
+                                .tieneBeca(socio.getTieneBeca())
+                                .porcentajeBecaSocial(socio.getPorcentajeBecaSocial())
+                                .porcentajeBecaDeportiva(socio.getPorcentajeBecaDeportiva())
+                                .porcentajeBecaPreparacionFisica(socio.getPorcentajeBecaPreparacionFisica())
+                                .observacionBeca(socio.getObservacionBeca())
                                 .vigenciaHasta(sd != null ? sd.getVigenciaHasta() : null)
                                 .activo(socio.getActivo())
                                 .build();

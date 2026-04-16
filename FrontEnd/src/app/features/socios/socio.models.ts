@@ -12,6 +12,11 @@ export interface SocioDto {
   arancelDisciplinaId?: number | null;
   categoriaArancel?: string | null;
   estadoPago?: string;
+  tieneBeca: boolean;
+  porcentajeBecaSocial: number;
+  porcentajeBecaDeportiva: number;
+  porcentajeBecaPreparacionFisica: number;
+  observacionBeca: string;
 }
 
 export interface SocioCreateRequest {
@@ -24,4 +29,9 @@ export interface SocioCreateRequest {
   disciplinaId: number;
   arancelDisciplinaId: number;
   inscripcionPagada?: boolean;
+  tieneBeca: boolean;
+  porcentajeBecaSocial: number;
+  porcentajeBecaDeportiva: number;
+  porcentajeBecaPreparacionFisica: number;
+  observacionBeca: string;
 }
