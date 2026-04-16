@@ -541,7 +541,6 @@ export class AdminSocioDetalleComponent implements OnInit {
       this.arancelSeleccionadoPorDisciplina[d.disciplinaId] = seleccionado;
 
       this.cargarMontosConBeca(d, seleccionado);
-      this.cargarMontosDesdeDeuda(d);
     }
 
     this.autocompletarPagoDisciplina(d);
@@ -584,7 +583,6 @@ export class AdminSocioDetalleComponent implements OnInit {
     }
 
     this.cargarMontosConBeca(d, seleccionado);
-    this.cargarMontosDesdeDeuda(d);
 
     if (
       form.concepto === 'CUOTA_MENSUAL' &&
@@ -641,21 +639,6 @@ export class AdminSocioDetalleComponent implements OnInit {
     this.recalcularMontoTotalDisciplina(d);
   }
 
-  private cargarMontosDesdeDeuda(d: SocioDisciplinaResumenVm): void {
-    const form = this.pagoForms[d.disciplinaId];
-    if (!form) return;
-
-    const deuda = d.deuda;
-    const primerAdeudado = deuda?.items?.find((i) => !i.pagado && i.periodo !== 'INSCRIPCION');
-
-    const montoExacto = Number(primerAdeudado?.monto ?? deuda?.montoMensual ?? 0);
-
-    form.montoSocial = 0;
-    form.montoDisciplina = 0;
-    form.montoPreparacionFisica = 0;
-    form.montoTotal = montoExacto;
-  }
-
   autocompletarPagoDisciplina(d: SocioDisciplinaResumenVm): void {
     const form = this.pagoForms[d.disciplinaId];
     if (!form) return;
@@ -684,9 +667,6 @@ export class AdminSocioDetalleComponent implements OnInit {
       if (arancel) {
         this.cargarMontosConBeca(d, arancel);
       }
-
-      // 🔥 esto pisa el total con el valor exacto de la deuda
-      this.cargarMontosDesdeDeuda(d);
 
       return;
     }
