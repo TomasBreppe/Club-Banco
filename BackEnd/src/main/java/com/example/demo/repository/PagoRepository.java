@@ -322,4 +322,20 @@ public interface PagoRepository extends JpaRepository<PagoEntity, Long> {
           ORDER BY p.periodo DESC, p.fechaPago DESC
       """)
   List<PagoEntity> findCuotasNoAnuladasBySocioDisciplina(@Param("socioDisciplinaId") Long socioDisciplinaId);
+
+  boolean existsBySocioDisciplina_IdAndConceptoAndPeriodoAndAnuladoFalse(
+      Long socioDisciplinaId,
+      String concepto,
+      String periodo);
+
+  @Query("""
+          SELECT p
+          FROM PagoEntity p
+          WHERE p.socioDisciplina.id = :socioDisciplinaId
+            AND p.concepto = 'INSCRIPCION'
+            AND p.anulado = false
+          ORDER BY p.fechaPago DESC, p.id DESC
+      """)
+  List<PagoEntity> findInscripcionesNoAnuladasBySocioDisciplina(
+      @Param("socioDisciplinaId") Long socioDisciplinaId);
 }

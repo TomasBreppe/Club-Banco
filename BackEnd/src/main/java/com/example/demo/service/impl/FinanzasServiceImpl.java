@@ -278,7 +278,7 @@ public class FinanzasServiceImpl implements FinanzasService {
                         null);
             }
 
-            if (pagoRepository.existsBySocioDisciplina_IdAndConceptoAndPeriodo(
+            if (pagoRepository.existsBySocioDisciplina_IdAndConceptoAndPeriodoAndAnuladoFalse(
                     socioDisciplina.getId(),
                     "CUOTA_MENSUAL",
                     periodo)) {
@@ -848,35 +848,53 @@ public class FinanzasServiceImpl implements FinanzasService {
 
         SocioDisciplinaEntity sd = pago.getSocioDisciplina();
         if (sd != null) {
-            recalcularEstadoSocioDisciplina(sd);
+            if ("CUOTA_MENSUAL".equalsIgnoreCase(pago.getConcepto())) {
+                recalcularVigenciaSocioDisciplina(sd);
+            } else if ("INSCRIPCION".equalsIgnoreCase(pago.getConcepto())) {
+                recalcularInscripcionSocioDisciplina(sd);
+            }
         }
 
         return new BaseResponse<>("Pago anulado correctamente", 200, null);
     }
 
-    private void recalcularEstadoSocioDisciplina(SocioDisciplinaEntity sd) {
-        Long socioDisciplinaId = sd.getId();
-
-        boolean tieneInscripcionVigente = pagoRepository
-                .existsBySocioDisciplina_IdAndConceptoAndAnuladoFalse(socioDisciplinaId, "INSCRIPCION");
-
-        sd.setInscripcionPagada(tieneInscripcionVigente);
-
-        var cuotas = pagoRepository.findCuotasNoAnuladasBySocioDisciplina(socioDisciplinaId);
-
-        String ultimoPeriodo = cuotas.stream()
-                .map(PagoEntity::getPeriodo)
-                .filter(p -> p != null && !p.isBlank())
-                .max(Comparator.naturalOrder())
-                .orElse(null);
-
-        if (ultimoPeriodo == null) {
-            sd.setVigenciaHasta(null);
-        } else {
-            YearMonth ym = YearMonth.parse(ultimoPeriodo);
-            sd.setVigenciaHasta(ym.atEndOfMonth());
+    private void recalcularVigenciaSocioDisciplina(SocioDisciplinaEntity sd) {
+        if (sd == null || sd.getId() == null) {
+            return;
         }
 
+        List<PagoEntity> cuotas = pagoRepository.findCuotasNoAnuladasBySocioDisciplina(sd.getId());
+
+        LocalDate nuevaVigenciaHasta = null;
+
+        if (cuotas != null && !cuotas.isEmpty()) {
+            for (PagoEntity cuota : cuotas) {
+                String periodo = cuota.getPeriodo();
+
+                if (periodo != null && periodo.matches("^\\d{4}-(0[1-9]|1[0-2])$")) {
+                    YearMonth ym = YearMonth.parse(periodo);
+                    LocalDate finMes = ym.atEndOfMonth();
+
+                    if (nuevaVigenciaHasta == null || finMes.isAfter(nuevaVigenciaHasta)) {
+                        nuevaVigenciaHasta = finMes;
+                    }
+                }
+            }
+        }
+
+        sd.setVigenciaHasta(nuevaVigenciaHasta);
+        socioDisciplinaRepository.save(sd);
+    }
+
+    private void recalcularInscripcionSocioDisciplina(SocioDisciplinaEntity sd) {
+        if (sd == null || sd.getId() == null) {
+            return;
+        }
+
+        boolean tieneInscripcionActiva = pagoRepository
+                .existsBySocioDisciplina_IdAndConceptoAndAnuladoFalse(sd.getId(), "INSCRIPCION");
+
+        sd.setInscripcionPagada(tieneInscripcionActiva);
         socioDisciplinaRepository.save(sd);
     }
 
