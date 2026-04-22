@@ -168,10 +168,14 @@ public class FinanzasServiceImpl implements FinanzasService {
                     .filter(p -> !Boolean.TRUE.equals(p.getAnulado()))
                     .toList();
 
-            Set<String> periodosPagos = pagos.stream()
-                    .map(PagoEntity::getPeriodo)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
+            Map<String, BigDecimal> pagadoPorPeriodo = pagos.stream()
+                    .filter(p -> p.getPeriodo() != null)
+                    .collect(Collectors.groupingBy(
+                            PagoEntity::getPeriodo,
+                            Collectors.reducing(
+                                    BigDecimal.ZERO,
+                                    p -> safe(p.getMontoTotal()),
+                                    BigDecimal::add)));
 
             List<DeudaItemDto> cuotas = periodos.stream()
                     .map(p -> {
@@ -187,11 +191,19 @@ public class FinanzasServiceImpl implements FinanzasService {
 
                         BigDecimal montoPeriodo = calcularMontoArancelConBeca(arancelPeriodo, socio,
                                 esPrimeraDisciplina);
+                        BigDecimal pagado = safe(pagadoPorPeriodo.get(p));
+
+                        boolean cuotaCompleta = pagado.compareTo(montoPeriodo) >= 0;
+
+                        BigDecimal saldoPendiente = montoPeriodo.subtract(pagado);
+                        if (saldoPendiente.compareTo(BigDecimal.ZERO) < 0) {
+                            saldoPendiente = BigDecimal.ZERO;
+                        }
 
                         return DeudaItemDto.builder()
                                 .periodo(p)
-                                .monto(montoPeriodo)
-                                .pagado(periodosPagos.contains(p))
+                                .monto(saldoPendiente)
+                                .pagado(cuotaCompleta)
                                 .build();
                     })
                     .toList();
@@ -278,13 +290,6 @@ public class FinanzasServiceImpl implements FinanzasService {
                         null);
             }
 
-            if (pagoRepository.existsBySocioDisciplina_IdAndConceptoAndPeriodoAndAnuladoFalse(
-                    socioDisciplina.getId(),
-                    "CUOTA_MENSUAL",
-                    periodo)) {
-                return new BaseResponse<>("La cuota de ese periodo ya está paga para esa disciplina", 400, null);
-            }
-
         } else if ("INSCRIPCION".equals(concepto)) {
 
             List<SocioDisciplinaEntity> relacionesActivas = socioDisciplinaRepository
@@ -343,22 +348,67 @@ public class FinanzasServiceImpl implements FinanzasService {
 
             disciplina = arancel.getDisciplina();
 
+            BigDecimal esperadoSocial;
+            BigDecimal esperadoDisciplina;
+            BigDecimal esperadoPreparacion;
+
             if (esPrimeraDisciplina) {
-                montoSocial = aplicarBeca(arancel.getMontoSocial(), socio.getPorcentajeBecaSocial());
-                montoDisciplina = aplicarBeca(arancel.getMontoDeportivo(), socio.getPorcentajeBecaDeportiva());
-                montoPreparacionFisica = aplicarBeca(
+                esperadoSocial = aplicarBeca(arancel.getMontoSocial(), socio.getPorcentajeBecaSocial());
+                esperadoDisciplina = aplicarBeca(arancel.getMontoDeportivo(), socio.getPorcentajeBecaDeportiva());
+                esperadoPreparacion = aplicarBeca(
                         arancel.getMontoPreparacionFisica(),
                         socio.getPorcentajeBecaPreparacionFisica());
             } else {
-                montoSocial = BigDecimal.ZERO;
-                montoDisciplina = aplicarBeca(arancel.getMontoDeportivo(), socio.getPorcentajeBecaDeportiva());
-                montoPreparacionFisica = aplicarBeca(
+                esperadoSocial = BigDecimal.ZERO;
+                esperadoDisciplina = aplicarBeca(arancel.getMontoDeportivo(), socio.getPorcentajeBecaDeportiva());
+                esperadoPreparacion = aplicarBeca(
                         arancel.getMontoPreparacionFisica(),
                         socio.getPorcentajeBecaPreparacionFisica());
             }
 
-            montoTotal = montoSocial.add(montoDisciplina).add(montoPreparacionFisica);
+            BigDecimal montoEsperado = esperadoSocial.add(esperadoDisciplina).add(esperadoPreparacion);
+
+            BigDecimal yaPagado = safe(
+                    pagoRepository.sumarMontoPagadoPorPeriodo(
+                            socioDisciplina.getId(),
+                            "CUOTA_MENSUAL",
+                            periodo));
+
+            BigDecimal saldoPendiente = montoEsperado.subtract(yaPagado);
+            if (saldoPendiente.compareTo(BigDecimal.ZERO) < 0) {
+                saldoPendiente = BigDecimal.ZERO;
+            }
+
+            BigDecimal montoIngresado = safe(dto.getMontoTotal());
+
+            if (montoIngresado.compareTo(BigDecimal.ZERO) <= 0) {
+                return new BaseResponse<>("El monto a pagar debe ser mayor a 0", 400, null);
+            }
+
+            if (saldoPendiente.compareTo(BigDecimal.ZERO) == 0) {
+                return new BaseResponse<>("La cuota de ese período ya está completamente pagada", 400, null);
+            }
+
+            if (montoIngresado.compareTo(saldoPendiente) > 0) {
+                return new BaseResponse<>("El monto ingresado supera el saldo pendiente de la cuota", 400, null);
+            }
+
+            montoTotal = montoIngresado;
             categoria = arancel.getCategoria();
+
+            if (montoEsperado.compareTo(BigDecimal.ZERO) > 0) {
+                montoSocial = esperadoSocial.multiply(montoIngresado)
+                        .divide(montoEsperado, 2, java.math.RoundingMode.HALF_UP);
+
+                montoDisciplina = esperadoDisciplina.multiply(montoIngresado)
+                        .divide(montoEsperado, 2, java.math.RoundingMode.HALF_UP);
+
+                montoPreparacionFisica = montoIngresado.subtract(montoSocial).subtract(montoDisciplina);
+            } else {
+                montoSocial = BigDecimal.ZERO;
+                montoDisciplina = BigDecimal.ZERO;
+                montoPreparacionFisica = BigDecimal.ZERO;
+            }
 
         } else {
             montoTotal = safe(dto.getMontoTotal());
@@ -401,12 +451,22 @@ public class FinanzasServiceImpl implements FinanzasService {
         }
 
         if ("CUOTA_MENSUAL".equals(concepto) && periodo != null) {
-            YearMonth ym = YearMonth.parse(periodo, YYYY_MM);
-            LocalDate finMes = ym.atEndOfMonth();
+            BigDecimal totalPagadoPeriodo = safe(
+                    pagoRepository.sumarMontoPagadoPorPeriodo(
+                            socioDisciplina.getId(),
+                            "CUOTA_MENSUAL",
+                            periodo));
 
-            if (socioDisciplina.getVigenciaHasta() == null || socioDisciplina.getVigenciaHasta().isBefore(finMes)) {
-                socioDisciplina.setVigenciaHasta(finMes);
-                socioDisciplinaRepository.save(socioDisciplina);
+            BigDecimal montoEsperadoPeriodo = calcularMontoEsperadoCuota(socio, socioDisciplina, periodo);
+
+            if (totalPagadoPeriodo.compareTo(montoEsperadoPeriodo) >= 0) {
+                YearMonth ym = YearMonth.parse(periodo, YYYY_MM);
+                LocalDate finMes = ym.atEndOfMonth();
+
+                if (socioDisciplina.getVigenciaHasta() == null || socioDisciplina.getVigenciaHasta().isBefore(finMes)) {
+                    socioDisciplina.setVigenciaHasta(finMes);
+                    socioDisciplinaRepository.save(socioDisciplina);
+                }
             }
         }
 
@@ -859,25 +919,29 @@ public class FinanzasServiceImpl implements FinanzasService {
     }
 
     private void recalcularVigenciaSocioDisciplina(SocioDisciplinaEntity sd) {
-        if (sd == null || sd.getId() == null) {
+        if (sd == null || sd.getId() == null || sd.getSocio() == null) {
             return;
         }
 
-        List<PagoEntity> cuotas = pagoRepository.findCuotasNoAnuladasBySocioDisciplina(sd.getId());
+        List<String> periodos = pagoRepository.findPeriodosCuotasPagadas(sd.getId());
 
         LocalDate nuevaVigenciaHasta = null;
 
-        if (cuotas != null && !cuotas.isEmpty()) {
-            for (PagoEntity cuota : cuotas) {
-                String periodo = cuota.getPeriodo();
+        for (String periodo : periodos) {
+            if (periodo == null || !periodo.matches("^\\d{4}-(0[1-9]|1[0-2])$")) {
+                continue;
+            }
 
-                if (periodo != null && periodo.matches("^\\d{4}-(0[1-9]|1[0-2])$")) {
-                    YearMonth ym = YearMonth.parse(periodo);
-                    LocalDate finMes = ym.atEndOfMonth();
+            BigDecimal totalPagado = safe(
+                    pagoRepository.sumarMontoPagadoPorPeriodo(sd.getId(), "CUOTA_MENSUAL", periodo));
 
-                    if (nuevaVigenciaHasta == null || finMes.isAfter(nuevaVigenciaHasta)) {
-                        nuevaVigenciaHasta = finMes;
-                    }
+            BigDecimal montoEsperado = calcularMontoEsperadoCuota(sd.getSocio(), sd, periodo);
+
+            if (totalPagado.compareTo(montoEsperado) >= 0) {
+                LocalDate finMes = YearMonth.parse(periodo, YYYY_MM).atEndOfMonth();
+
+                if (nuevaVigenciaHasta == null || finMes.isAfter(nuevaVigenciaHasta)) {
+                    nuevaVigenciaHasta = finMes;
                 }
             }
         }
@@ -977,6 +1041,35 @@ public class FinanzasServiceImpl implements FinanzasService {
 
         return safe(a.getMontoDeportivo())
                 .add(safe(a.getMontoPreparacionFisica()));
+    }
+
+    private BigDecimal calcularMontoEsperadoCuota(SocioEntity socio, SocioDisciplinaEntity socioDisciplina,
+            String periodo) {
+        if (socioDisciplina == null || socioDisciplina.getDisciplina() == null
+                || socioDisciplina.getArancelDisciplina() == null) {
+            return BigDecimal.ZERO;
+        }
+
+        YearMonth ym = YearMonth.parse(periodo, YYYY_MM);
+        LocalDate fechaPeriodo = ym.atEndOfMonth();
+
+        String categoria = socioDisciplina.getArancelDisciplina().getCategoria();
+        Long disciplinaId = socioDisciplina.getDisciplina().getId();
+
+        ArancelDisciplinaEntity arancelPeriodo = arancelDisciplinaRepository
+                .findTopByDisciplina_IdAndCategoriaIgnoreCaseAndVigenteDesdeLessThanEqualOrderByVigenteDesdeDesc(
+                        disciplinaId,
+                        categoria,
+                        fechaPeriodo)
+                .orElse(socioDisciplina.getArancelDisciplina());
+
+        List<SocioDisciplinaEntity> relacionesActivas = socioDisciplinaRepository
+                .findBySocio_IdAndActivoTrue(socio.getId());
+
+        Long principalId = relacionesActivas.isEmpty() ? null : relacionesActivas.get(0).getId();
+        boolean esPrimeraDisciplina = Objects.equals(socioDisciplina.getId(), principalId);
+
+        return calcularMontoArancelConBeca(arancelPeriodo, socio, esPrimeraDisciplina);
     }
 
     private static List<YearMonth> mesesEntre(YearMonth start, YearMonth end) {

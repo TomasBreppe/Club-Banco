@@ -6,3 +6,92 @@
 .balance-result-negative {
   color: #dc2626;
 }
+
+.balance-header {
+  display: flex;
+  align-items: center; /* antes estaba flex-start */
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding-right: 0.25rem;
+}
+
+.balance-title {
+  font-weight: 800;
+  color: var(--cb-text, #1f2937);
+  margin: 0;
+}
+
+.balance-subtitle {
+  color: var(--cb-text-soft, #6b7280);
+  font-size: 0.95rem;
+}
+
+.balance-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.btn-excel-solid,
+.btn-excel-outline {
+  min-height: 46px;
+  padding: 0.72rem 1.15rem;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.08);
+}
+
+.btn-excel-solid {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  border: 1px solid #15803d;
+  color: #fff;
+}
+
+.btn-excel-solid:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(21, 128, 61, 0.18);
+  color: #fff;
+}
+
+.btn-excel-outline {
+  background: #fff;
+  border: 1px solid #cfe0ff;
+  color: #2563eb;
+}
+
+.btn-excel-outline:hover {
+  background: #f8fbff;
+  border-color: #9ec5ff;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.btn-excel-solid i,
+.btn-excel-outline i {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .balance-header {
+    align-items: stretch;
+  }
+
+  .balance-actions {
+    width: 100%;
+  }
+
+  .btn-excel-solid,
+  .btn-excel-outline {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

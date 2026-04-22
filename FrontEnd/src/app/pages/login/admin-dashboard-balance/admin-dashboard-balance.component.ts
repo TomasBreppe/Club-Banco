@@ -20,7 +20,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-
+import { HttpClient } from '@angular/common/http';
 import { DashboardBalanceService } from '../../../service/dashboard-balance.service';
 import { DashboardBalanceResumen } from '../../../models/balance.model';
 import { ExcelExportService } from '../../../service/excel-export.service';
@@ -30,7 +30,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
 @Component({
   selector: 'app-admin-dashboard-balance',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule ],
   templateUrl: './admin-dashboard-balance.component.html',
   styleUrls: ['./admin-dashboard-balance.component.css'],
   providers: [DatePipe],
@@ -40,7 +40,7 @@ export class AdminDashboardBalanceComponent implements OnInit, AfterViewInit {
   private excelExportService = inject(ExcelExportService);
   private cdr = inject(ChangeDetectorRef);
   private datePipe = inject(DatePipe);
-
+  private http = inject(HttpClient);
   @ViewChild('chartBalance') chartBalanceRef?: ElementRef<HTMLCanvasElement>;
 
   private chartBalance?: Chart;
@@ -66,10 +66,7 @@ export class AdminDashboardBalanceComponent implements OnInit, AfterViewInit {
     this.cargando = true;
 
     this.dashboardBalanceService
-      .obtenerDashboard(
-        this.fechaDesde || null,
-        this.fechaHasta || null
-      )
+      .obtenerDashboard(this.fechaDesde || null, this.fechaHasta || null)
       .pipe(
         finalize(() => {
           this.cargando = false;
@@ -116,9 +113,10 @@ export class AdminDashboardBalanceComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    const periodo = this.fechaDesde || this.fechaHasta
-      ? `${this.fechaDesde || 'Inicio'} a ${this.fechaHasta || 'Hoy'}`
-      : this.mesActual;
+    const periodo =
+      this.fechaDesde || this.fechaHasta
+        ? `${this.fechaDesde || 'Inicio'} a ${this.fechaHasta || 'Hoy'}`
+        : this.mesActual;
 
     const fechaDesde = this.fechaDesde || 'sin_desde';
     const fechaHasta = this.fechaHasta || 'sin_hasta';
@@ -139,19 +137,14 @@ export class AdminDashboardBalanceComponent implements OnInit, AfterViewInit {
 
   private actualizarPeriodoVisual(): void {
     if (this.fechaDesde || this.fechaHasta) {
-      const desde = this.fechaDesde
-        ? this.formatearFecha(this.fechaDesde)
-        : 'Inicio';
-      const hasta = this.fechaHasta
-        ? this.formatearFecha(this.fechaHasta)
-        : 'Hoy';
+      const desde = this.fechaDesde ? this.formatearFecha(this.fechaDesde) : 'Inicio';
+      const hasta = this.fechaHasta ? this.formatearFecha(this.fechaHasta) : 'Hoy';
 
       this.mesActual = `${desde} - ${hasta}`;
       return;
     }
 
-    this.mesActual =
-      this.datePipe.transform(new Date(), "MMMM 'de' yyyy", 'es-AR') ?? '';
+    this.mesActual = this.datePipe.transform(new Date(), "MMMM 'de' yyyy", 'es-AR') ?? '';
   }
 
   private formatearFecha(fecha: string): string {
@@ -172,11 +165,7 @@ export class AdminDashboardBalanceComponent implements OnInit, AfterViewInit {
         datasets: [
           {
             label: 'Monto',
-            data: [
-              this.resumen.ingresosMes,
-              this.resumen.gastosMes,
-              this.resumen.netoMes,
-            ],
+            data: [this.resumen.ingresosMes, this.resumen.gastosMes, this.resumen.netoMes],
             backgroundColor: ['#198754', '#dc3545', '#0d6efd'],
             borderWidth: 1,
           },
@@ -190,6 +179,21 @@ export class AdminDashboardBalanceComponent implements OnInit, AfterViewInit {
         },
       },
     });
+  }
+
+  descargarExcel() {
+    this.http
+      .get('http://localhost:8080/api/admin/balance/excel', {
+        responseType: 'blob',
+      })
+      .subscribe((blob) => {
+        const a = document.createElement('a');
+        const url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = 'balance.xlsx';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      });
   }
 
   getNetoClass(): string {

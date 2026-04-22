@@ -644,13 +644,13 @@ export class AdminSocioDetalleComponent implements OnInit {
     if (!form) return;
 
     const deuda = d.deuda;
-    const esPrincipal = this.esDisciplinaPrincipal(d);
 
     if (form.concepto === 'CUOTA_MENSUAL') {
       const primerAdeudado = deuda?.items?.find((i) => !i.pagado && i.periodo !== 'INSCRIPCION');
 
       if (primerAdeudado) {
         form.periodo = primerAdeudado.periodo as any;
+        form.montoTotal = Number(primerAdeudado.monto ?? 0);
       } else {
         const actual = this.periodoActual();
         const arancel = this.arancelSeleccionadoPorDisciplina[d.disciplinaId];
@@ -666,6 +666,10 @@ export class AdminSocioDetalleComponent implements OnInit {
       const arancel = this.arancelSeleccionadoPorDisciplina[d.disciplinaId];
       if (arancel) {
         this.cargarMontosConBeca(d, arancel);
+      }
+
+      if (primerAdeudado) {
+        form.montoTotal = Number(primerAdeudado.monto ?? 0);
       }
 
       return;
@@ -760,7 +764,7 @@ export class AdminSocioDetalleComponent implements OnInit {
         return;
       }
 
-      this.recalcularMontoTotalDisciplina(d);
+      form.montoTotal = Number(form.montoTotal ?? 0);
     } else {
       form.periodo = null as any;
       form.arancelDisciplinaId = null as any;
@@ -825,9 +829,24 @@ export class AdminSocioDetalleComponent implements OnInit {
     return (this.data.ultimosPagos ?? []).filter((p) => p.disciplinaId === d.disciplinaId);
   }
 
+  getItemsAdeudadosPorDisciplina(d: SocioDisciplinaResumenVm): any[] {
+    const items = d.deuda?.items ?? [];
+    return items.filter((i) => !i.pagado);
+  }
+
+  getEstadoItemDeuda(item: any): string {
+    if (!item) return '-';
+
+    if (item.periodo === 'INSCRIPCION') {
+      return item.pagado ? 'Pagada' : 'Pendiente';
+    }
+
+    return item.pagado ? 'Pagado' : 'Debe';
+  }
+
   getPeriodosAdeudadosPorDisciplina(d: SocioDisciplinaResumenVm): string[] {
     const items = d.deuda?.items ?? [];
-    return items.filter((i) => !i.pagado).map((i) => i.periodo);
+    return items.filter((i) => !i.pagado && !!i.periodo).map((i) => i.periodo);
   }
 
   tieneDeudaDisciplina(d: SocioDisciplinaResumenVm): boolean {

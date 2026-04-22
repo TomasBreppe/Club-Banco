@@ -103,13 +103,23 @@
 
     <div class="card table-card shadow-sm">
       <div class="card-body">
-        <div class="table-toolbar">
-          <h5 class="table-title">Resumen</h5>
+        <div class="balance-header">
+          <div>
+            <h3 class="balance-title mb-1">Resumen</h3>
+            <p class="balance-subtitle mb-0">Consultá el balance y exportá los reportes.</p>
+          </div>
 
-          <button class="btn btn-success" (click)="exportarBalance()" [disabled]="!resumen">
-            <i class="bi bi-file-earmark-excel me-2"></i>
-            Descargar Excel
-          </button>
+          <div class="balance-actions">
+            <button type="button" class="btn btn-excel-solid" (click)="descargarExcel()">
+              <i class="bi bi-file-earmark-excel"></i>
+              Excel banco
+            </button>
+
+            <button type="button" class="btn btn-excel-outline" (click)="exportarBalance()">
+              <i class="bi bi-table"></i>
+              Excel resumen
+            </button>
+          </div>
         </div>
 
         <div class="row g-3">

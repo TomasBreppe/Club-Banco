@@ -412,15 +412,36 @@
                         </div>
 
                         <div class="col-12">
-                          <div class="text-muted small mb-2">Períodos adeudados</div>
-                          <div class="d-flex flex-wrap gap-2">
-                            <span
-                              class="badge rounded-pill bg-danger"
-                              *ngFor="let periodo of getPeriodosAdeudadosPorDisciplina(disc)"
+                          <div class="text-muted small mb-2">Períodos con saldo pendiente</div>
+
+                          <div
+                            *ngIf="
+                              getItemsAdeudadosPorDisciplina(disc).length;
+                              else sinPeriodosAdeudados
+                            "
+                            class="d-flex flex-column gap-2"
+                          >
+                            <div
+                              *ngFor="let item of getItemsAdeudadosPorDisciplina(disc)"
+                              class="d-flex justify-content-between align-items-center flex-wrap gap-2 deuda-item-resumen"
                             >
-                              {{ formatearPeriodo(periodo) }}
-                            </span>
+                              <span class="badge rounded-pill bg-danger">
+                                {{ formatearPeriodo(item.periodo) }}
+                              </span>
+
+                              <span class="fw-semibold text-danger">
+                                {{
+                                  item.periodo === 'INSCRIPCION'
+                                    ? 'Pendiente'
+                                    : 'Debe $' + (item.monto ?? 0)
+                                }}
+                              </span>
+                            </div>
                           </div>
+
+                          <ng-template #sinPeriodosAdeudados>
+                            <div class="text-success fw-semibold">No hay deuda pendiente.</div>
+                          </ng-template>
                         </div>
 
                         <div class="col-12">
@@ -469,26 +490,45 @@
                         <thead class="table-light">
                           <tr>
                             <th>Período</th>
-                            <th>Monto</th>
+                            <th>Saldo pendiente</th>
                             <th>Estado</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr *ngFor="let item of disc.deuda?.items">
                             <td>{{ formatearPeriodo(item.periodo) }}</td>
+
                             <td>
-                              <div class="fw-semibold">${{ item.monto }}</div>
-                              <small *ngIf="d.tieneBeca" class="text-success d-block fw-bold"
-                                >Con beca</small
+                              <div
+                                class="fw-semibold"
+                                [class.text-success]="item.pagado"
+                                [class.text-danger]="!item.pagado"
                               >
+                                {{
+                                  item.periodo === 'INSCRIPCION'
+                                    ? item.pagado
+                                      ? '$0'
+                                      : 'Pendiente'
+                                    : '$' + (item.monto ?? 0)
+                                }}
+                              </div>
+
+                              <small
+                                *ngIf="d.tieneBeca && item.periodo !== 'INSCRIPCION'"
+                                class="text-success d-block fw-bold"
+                              >
+                                Con beca
+                              </small>
                             </td>
+
                             <td>
                               <span
                                 class="badge"
                                 [class.bg-success]="item.pagado"
-                                [class.bg-danger]="!item.pagado"
+                                [class.bg-warning]="!item.pagado && item.periodo === 'INSCRIPCION'"
+                                [class.bg-danger]="!item.pagado && item.periodo !== 'INSCRIPCION'"
                               >
-                                {{ item.pagado ? 'Pagado' : 'Adeudado' }}
+                                {{ getEstadoItemDeuda(item) }}
                               </span>
                             </td>
                           </tr>
@@ -588,7 +628,7 @@
                         >
                           <option value="EFECTIVO">EFECTIVO</option>
                           <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-                          <option value="MERCADO_PAGO">TARJETAS</option>
+                          <option value="TARJETAS">TARJETAS</option>
                         </select>
                       </div>
 
@@ -604,7 +644,7 @@
                           class="form-control"
                           [(ngModel)]="pagoForms[disc.disciplinaId].montoSocial"
                           [name]="'social_' + disc.disciplinaId"
-                          (input)="recalcularMontoTotalDisciplina(d)"
+                          [disabled]="true"
                         />
                       </div>
 
@@ -620,7 +660,7 @@
                           class="form-control"
                           [(ngModel)]="pagoForms[disc.disciplinaId].montoDisciplina"
                           [name]="'deportivo_' + disc.disciplinaId"
-                          (input)="recalcularMontoTotalDisciplina(d)"
+                          [disabled]="true"
                         />
                       </div>
 
@@ -636,25 +676,28 @@
                           class="form-control"
                           [(ngModel)]="pagoForms[disc.disciplinaId].montoPreparacionFisica"
                           [name]="'prep_' + disc.disciplinaId"
-                          (input)="recalcularMontoTotalDisciplina(d)"
+                          [disabled]="true"
                         />
                       </div>
 
                       <div class="col-12 col-md-3">
                         <label class="form-label">
-                          Monto total
-                          <small *ngIf="d.tieneBeca" class="text-success d-block"
-                            >Total con beca</small
+                          Monto a pagar
+                          <small
+                            *ngIf="pagoForms[disc.disciplinaId].concepto === 'CUOTA_MENSUAL'"
+                            class="text-muted d-block"
                           >
+                            Podés ingresar un pago parcial
+                          </small>
                         </label>
                         <input
                           type="number"
                           class="form-control"
                           [(ngModel)]="pagoForms[disc.disciplinaId].montoTotal"
                           [name]="'total_' + disc.disciplinaId"
-                          [disabled]="
-                            loading || pagoForms[disc.disciplinaId].concepto === 'CUOTA_MENSUAL'
-                          "
+                          [disabled]="loading"
+                          min="0"
+                          step="0.01"
                         />
                       </div>
 

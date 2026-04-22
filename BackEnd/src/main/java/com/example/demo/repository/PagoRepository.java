@@ -338,4 +338,42 @@ public interface PagoRepository extends JpaRepository<PagoEntity, Long> {
       """)
   List<PagoEntity> findInscripcionesNoAnuladasBySocioDisciplina(
       @Param("socioDisciplinaId") Long socioDisciplinaId);
+
+  @Query("""
+          SELECT COALESCE(SUM(p.montoTotal), 0)
+          FROM PagoEntity p
+          WHERE p.socioDisciplina.id = :socioDisciplinaId
+            AND p.concepto = :concepto
+            AND p.periodo = :periodo
+            AND p.anulado = false
+      """)
+  BigDecimal sumarMontoPagadoPorPeriodo(
+      @Param("socioDisciplinaId") Long socioDisciplinaId,
+      @Param("concepto") String concepto,
+      @Param("periodo") String periodo);
+
+  @Query("""
+          SELECT p
+          FROM PagoEntity p
+          WHERE p.socioDisciplina.id = :socioDisciplinaId
+            AND p.concepto = :concepto
+            AND p.periodo = :periodo
+            AND p.anulado = false
+          ORDER BY p.fechaPago ASC, p.id ASC
+      """)
+  List<PagoEntity> findPagosActivosPorPeriodo(
+      @Param("socioDisciplinaId") Long socioDisciplinaId,
+      @Param("concepto") String concepto,
+      @Param("periodo") String periodo);
+
+  @Query("""
+          SELECT DISTINCT p.periodo
+          FROM PagoEntity p
+          WHERE p.socioDisciplina.id = :socioDisciplinaId
+            AND p.concepto = 'CUOTA_MENSUAL'
+            AND p.anulado = false
+            AND p.periodo IS NOT NULL
+          ORDER BY p.periodo ASC
+      """)
+  List<String> findPeriodosCuotasPagadas(@Param("socioDisciplinaId") Long socioDisciplinaId);
 }
