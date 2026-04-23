@@ -280,6 +280,47 @@ public class SocioServiceImpl implements SocioService {
                 return BaseResponse.ok("Beca actualizada correctamente", SocioMapper.toDto(saved, sd));
         }
 
+        @Override
+        @Transactional
+        public BaseResponse<SocioDto> cambiarCategoriaDisciplina(Long socioDisciplinaId, SocioCambiarCategoriaDto dto) {
+                if (dto == null || dto.getArancelDisciplinaId() == null || dto.getArancelDisciplinaId() <= 0) {
+                        return BaseResponse.bad("Debés seleccionar una categoría/arancel");
+                }
+
+                SocioDisciplinaEntity sd = socioDisciplinaRepository.findByIdAndActivoTrue(socioDisciplinaId)
+                                .orElse(null);
+
+                if (sd == null) {
+                        return BaseResponse.bad("No se encontró la disciplina activa del socio");
+                }
+
+                ArancelDisciplinaEntity nuevoArancel = arancelDisciplinaRepository
+                                .findById(dto.getArancelDisciplinaId())
+                                .orElse(null);
+
+                if (nuevoArancel == null) {
+                        return BaseResponse.bad("Arancel no encontrado");
+                }
+
+                if (Boolean.FALSE.equals(nuevoArancel.getActiva())) {
+                        return BaseResponse.bad("El arancel seleccionado está inactivo");
+                }
+
+                if (sd.getDisciplina() == null || nuevoArancel.getDisciplina() == null ||
+                                !sd.getDisciplina().getId().equals(nuevoArancel.getDisciplina().getId())) {
+                        return BaseResponse.bad("La categoría seleccionada no corresponde a la disciplina");
+                }
+
+                sd.setArancelDisciplina(nuevoArancel);
+                SocioDisciplinaEntity savedSd = socioDisciplinaRepository.save(sd);
+
+                SocioEntity socio = savedSd.getSocio();
+
+                return BaseResponse.ok(
+                                "Categoría actualizada correctamente",
+                                SocioMapper.toDto(socio, savedSd));
+        }
+
         private BigDecimal normalizarPorcentaje(BigDecimal value) {
                 if (value == null)
                         return BigDecimal.ZERO;

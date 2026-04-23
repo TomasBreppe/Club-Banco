@@ -11,6 +11,7 @@ import com.example.demo.service.SocioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import com.example.demo.dto.socio.SocioCambiarCategoriaDto;
 
 import java.util.List;
 
@@ -60,5 +61,12 @@ public class AdminSocioController {
             @PathVariable Long socioId,
             @RequestBody SocioBecaUpdateDto dto) {
         return socioService.actualizarBeca(socioId, dto);
+    }
+
+    @PutMapping("/disciplinas/{socioDisciplinaId}/categoria")
+    public BaseResponse<SocioDto> cambiarCategoriaDisciplina(
+            @PathVariable Long socioDisciplinaId,
+            @RequestBody SocioCambiarCategoriaDto dto) {
+        return socioService.cambiarCategoriaDisciplina(socioDisciplinaId, dto);
     }
 }

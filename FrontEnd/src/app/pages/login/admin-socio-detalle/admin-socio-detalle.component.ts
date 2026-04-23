@@ -73,6 +73,12 @@ export class AdminSocioDetalleComponent implements OnInit {
   arancelSeleccionadoPorDisciplina: Record<number, ArancelDisciplinaDto | null> = {};
   pagoForms: Record<number, PagoManualRequest> = {};
 
+  guardandoCategoriaPorDisciplina: Record<number, boolean> = {};
+  categoriaErrorPorDisciplina: Record<number, string | null> = {};
+  categoriaOkPorDisciplina: Record<number, string | null> = {};
+  categoriaEditandoPorDisciplina: Record<number, boolean> = {};
+  categoriaSeleccionadaPorDisciplina: Record<number, number | null> = {};
+
   // NUEVO: agregar disciplina
   mostrarAgregarDisciplina = false;
   agregarDisciplinaLoading = false;
@@ -207,6 +213,12 @@ export class AdminSocioDetalleComponent implements OnInit {
           for (const d of disciplinas) {
             this.inicializarPagoForm(d);
             this.cargarArancelesPorDisciplina(d);
+
+            this.guardandoCategoriaPorDisciplina[d.disciplinaId] = false;
+            this.categoriaErrorPorDisciplina[d.disciplinaId] = null;
+            this.categoriaOkPorDisciplina[d.disciplinaId] = null;
+            this.categoriaEditandoPorDisciplina[d.disciplinaId] = false;
+            this.categoriaSeleccionadaPorDisciplina[d.disciplinaId] = d.arancelDisciplinaId ?? null;
           }
 
           this.cdr.detectChanges();
@@ -429,6 +441,72 @@ export class AdminSocioDetalleComponent implements OnInit {
         this.cdr.detectChanges();
       },
     });
+  }
+
+  toggleEditarCategoria(d: SocioDisciplinaResumenVm): void {
+    this.categoriaEditandoPorDisciplina[d.disciplinaId] =
+      !this.categoriaEditandoPorDisciplina[d.disciplinaId];
+
+    this.categoriaErrorPorDisciplina[d.disciplinaId] = null;
+    this.categoriaOkPorDisciplina[d.disciplinaId] = null;
+    this.categoriaSeleccionadaPorDisciplina[d.disciplinaId] = d.arancelDisciplinaId ?? null;
+
+    this.cdr.detectChanges();
+  }
+
+  guardarCategoriaDisciplina(d: SocioDisciplinaResumenVm): void {
+    const socioDisciplinaId = d.socioDisciplinaId;
+    const arancelDisciplinaId = this.categoriaSeleccionadaPorDisciplina[d.disciplinaId];
+
+    this.categoriaErrorPorDisciplina[d.disciplinaId] = null;
+    this.categoriaOkPorDisciplina[d.disciplinaId] = null;
+
+    if (!socioDisciplinaId) {
+      this.categoriaErrorPorDisciplina[d.disciplinaId] =
+        'No se pudo identificar la disciplina del socio';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!arancelDisciplinaId) {
+      this.categoriaErrorPorDisciplina[d.disciplinaId] = 'Debés seleccionar una categoría';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.guardandoCategoriaPorDisciplina[d.disciplinaId] = true;
+    this.cdr.detectChanges();
+
+    this.api
+      .cambiarCategoriaDisciplina(socioDisciplinaId, arancelDisciplinaId)
+      .pipe(
+        finalize(() => {
+          this.guardandoCategoriaPorDisciplina[d.disciplinaId] = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (res: any) => {
+          if (res?.status !== 200 && res?.status !== 201) {
+            this.categoriaErrorPorDisciplina[d.disciplinaId] =
+              res?.mensaje || 'No se pudo actualizar la categoría';
+            this.cdr.detectChanges();
+            return;
+          }
+
+          this.categoriaOkPorDisciplina[d.disciplinaId] = 'Categoría actualizada correctamente';
+          this.categoriaEditandoPorDisciplina[d.disciplinaId] = false;
+
+          if (this.data?.socioId) {
+            this.cargar(this.data.socioId);
+          }
+        },
+        error: (err) => {
+          this.categoriaErrorPorDisciplina[d.disciplinaId] =
+            err?.error?.mensaje || 'Error actualizando la categoría';
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   onNuevaDisciplinaChange(): void {

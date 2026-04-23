@@ -79,14 +79,16 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
   };
 
   categoriasIngresoManual: string[] = [
+    'CUOTAS_ATRASADAS',
     'DIEF',
+    'DEPOSITOS',
     'EVENTOS',
     'FUTBOL_ALQUILERES',
     'FUTBOL_TORNEOS',
+    'KIOSCO_ALQUILERES',
     'MANTOVANI',
     'MUTUAL',
     'PLAYAS',
-    'CUOTAS ATRASADAS',
   ];
 
   mediosIngresoManual: string[] = ['BANCO', 'EFECTIVO'];

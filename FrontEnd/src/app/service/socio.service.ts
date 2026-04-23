@@ -41,6 +41,13 @@ export class SociosService {
     return this.http.put<any>(`${this.base}/api/admin/socios/${socioId}/beca`, body);
   }
 
+  cambiarCategoriaDisciplina(socioDisciplinaId: number, arancelDisciplinaId: number) {
+    return this.http.put<BaseResponse<any>>(
+      `${this.base}/api/admin/socios/disciplinas/${socioDisciplinaId}/categoria`,
+      { arancelDisciplinaId },
+    );
+  }
+
   cambiarActivo(id: number, valor: boolean) {
     return this.http.patch<BaseResponse<SocioDto>>(
       `${this.base}/api/admin/socios/${id}/activo?valor=${valor}`,

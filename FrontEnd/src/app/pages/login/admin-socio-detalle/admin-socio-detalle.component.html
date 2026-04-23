@@ -186,8 +186,85 @@
                       </div>
 
                       <div class="col-12 col-sm-6">
-                        <div class="text-muted small">Categoría</div>
-                        <div class="fw-semibold">{{ disc.categoriaArancel || '-' }}</div>
+                        <div class="text-muted small mb-1">Categoría</div>
+
+                        <div
+                          *ngIf="categoriaErrorPorDisciplina[disc.disciplinaId]"
+                          class="alert alert-danger py-2 mb-2"
+                        >
+                          {{ categoriaErrorPorDisciplina[disc.disciplinaId] }}
+                        </div>
+
+                        <div
+                          *ngIf="categoriaOkPorDisciplina[disc.disciplinaId]"
+                          class="alert alert-success py-2 mb-2"
+                        >
+                          {{ categoriaOkPorDisciplina[disc.disciplinaId] }}
+                        </div>
+
+                        <ng-container
+                          *ngIf="
+                            !categoriaEditandoPorDisciplina[disc.disciplinaId];
+                            else editarCategoriaTpl
+                          "
+                        >
+                          <div
+                            class="d-flex align-items-center justify-content-between gap-2 flex-wrap"
+                          >
+                            <div class="fw-semibold">{{ disc.categoriaArancel || '-' }}</div>
+
+                            <button
+                              type="button"
+                              class="btn btn-sm btn-outline-primary"
+                              (click)="toggleEditarCategoria(disc)"
+                            >
+                              Cambiar
+                            </button>
+                          </div>
+                        </ng-container>
+
+                        <ng-template #editarCategoriaTpl>
+                          <div class="d-flex flex-column gap-2">
+                            <select
+                              class="form-select"
+                              [(ngModel)]="categoriaSeleccionadaPorDisciplina[disc.disciplinaId]"
+                              [name]="'categoria_edit_' + disc.disciplinaId"
+                              [disabled]="guardandoCategoriaPorDisciplina[disc.disciplinaId]"
+                            >
+                              <option [ngValue]="null">Seleccionar</option>
+                              <option
+                                *ngFor="let a of arancelesPorDisciplina[disc.disciplinaId] || []"
+                                [ngValue]="a.id"
+                              >
+                                {{ a.categoria }}
+                              </option>
+                            </select>
+
+                            <div class="d-flex gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-outline-secondary"
+                                (click)="toggleEditarCategoria(disc)"
+                                [disabled]="guardandoCategoriaPorDisciplina[disc.disciplinaId]"
+                              >
+                                Cancelar
+                              </button>
+
+                              <button
+                                type="button"
+                                class="btn btn-sm btn-primary"
+                                (click)="guardarCategoriaDisciplina(disc)"
+                                [disabled]="guardandoCategoriaPorDisciplina[disc.disciplinaId]"
+                              >
+                                <span
+                                  *ngIf="guardandoCategoriaPorDisciplina[disc.disciplinaId]"
+                                  class="spinner-border spinner-border-sm me-2"
+                                ></span>
+                                Guardar
+                              </button>
+                            </div>
+                          </div>
+                        </ng-template>
                       </div>
 
                       <div class="col-12 col-sm-6">

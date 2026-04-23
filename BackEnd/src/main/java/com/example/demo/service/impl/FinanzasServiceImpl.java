@@ -42,6 +42,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -739,7 +741,15 @@ public class FinanzasServiceImpl implements FinanzasService {
             document.add(subtitulo);
 
             DateTimeFormatter fechaHoraFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-            String fechaHora = pago.getFechaPago() != null ? pago.getFechaPago().format(fechaHoraFmt) : "-";
+
+            String fechaHora = "-";
+            if (pago.getFechaPago() != null) {
+                ZonedDateTime fechaZona = pago.getFechaPago()
+                        .atZone(ZoneId.of("UTC"))
+                        .withZoneSameInstant(ZoneId.of("America/Argentina/Buenos_Aires"));
+
+                fechaHora = fechaZona.format(fechaHoraFmt);
+            }
 
             PdfPTable table = new PdfPTable(2);
             table.setWidthPercentage(100);

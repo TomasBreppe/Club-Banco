@@ -99,7 +99,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
       'Laso Marcos',
       'Maldonado Carmen',
       'Ramirez Patricia',
-      'Rivas Jesica',
+      'Rivas Yessica',
       'Toledo Gustavo',
     ],
     GASTOS_BANCARIOS: ['66', '82', '416', '417'],
