@@ -64,8 +64,16 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
 
   resumen: DashboardGastosResumen | null = null;
   gastos: Gasto[] = [];
+  gastosFiltrados: Gasto[] = [];
   disciplinas: DisciplinaDto[] = [];
   mesActual = '';
+
+  paginaActual = 1;
+  tamanoPagina = 10;
+  opcionesTamano = [5, 10, 20, 50];
+
+  sortColumn: 'fecha' | 'categoria' | 'concepto' | 'medioPago' | 'monto' = 'fecha';
+  sortDirection: 'asc' | 'desc' = 'desc';
 
   categorias: GastoCategoria[] = [
     'DISCIPLINAS',
@@ -255,7 +263,10 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
           }
 
           this.resumen = res.data.resumen;
-          this.gastos = res.data.gastos;
+          this.gastos = res.data.gastos ?? [];
+          this.gastosFiltrados = [...this.gastos];
+          this.ordenarGastos();
+          this.paginaActual = 1;
           this.chartsPendientes = true;
           this.cdr.detectChanges();
         },
@@ -464,6 +475,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
       fechaHasta: '',
       q: '',
     };
+    this.paginaActual = 1;
     this.cargarDashboard();
   }
 
@@ -490,13 +502,142 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
       Categoría: this.formatCategoria(g.categoria),
       Concepto: g.concepto || '-',
       Descripción: g.descripcion || '-',
-      'Medio de pago': g.medioPago || '-',
+      'Medio de pago': this.formatMedio(g.medioPago),
       Monto: Number(g.monto ?? 0),
     }));
 
     const fileName = `gastos_${categoria}_${concepto}_${fechaDesde}_${fechaHasta}_${busqueda}`;
 
     this.excelExportService.exportToExcel(data, fileName, 'Gastos');
+  }
+
+  ordenarPor(columna: 'fecha' | 'categoria' | 'concepto' | 'medioPago' | 'monto'): void {
+    if (this.sortColumn === columna) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = columna;
+      this.sortDirection = columna === 'fecha' || columna === 'monto' ? 'desc' : 'asc';
+    }
+
+    this.ordenarGastos();
+    this.paginaActual = 1;
+    this.cdr.detectChanges();
+  }
+
+  ordenarGastos(): void {
+    this.gastosFiltrados = [...this.gastosFiltrados].sort((a, b) => {
+      let valorA: any;
+      let valorB: any;
+
+      switch (this.sortColumn) {
+        case 'fecha':
+          valorA = this.normalizar(a.fecha);
+          valorB = this.normalizar(b.fecha);
+          break;
+        case 'categoria':
+          valorA = this.normalizar(a.categoria);
+          valorB = this.normalizar(b.categoria);
+          break;
+        case 'concepto':
+          valorA = this.normalizar(a.concepto);
+          valorB = this.normalizar(b.concepto);
+          break;
+        case 'medioPago':
+          valorA = this.normalizar(a.medioPago);
+          valorB = this.normalizar(b.medioPago);
+          break;
+        case 'monto':
+          valorA = Number(a.monto ?? 0);
+          valorB = Number(b.monto ?? 0);
+          break;
+        default:
+          valorA = this.normalizar(a.fecha);
+          valorB = this.normalizar(b.fecha);
+      }
+
+      if (valorA < valorB) {
+        return this.sortDirection === 'asc' ? -1 : 1;
+      }
+
+      if (valorA > valorB) {
+        return this.sortDirection === 'asc' ? 1 : -1;
+      }
+
+      return 0;
+    });
+  }
+
+  esColumnaActiva(columna: 'fecha' | 'categoria' | 'concepto' | 'medioPago' | 'monto'): boolean {
+    return this.sortColumn === columna;
+  }
+
+  iconoOrden(columna: 'fecha' | 'categoria' | 'concepto' | 'medioPago' | 'monto'): string {
+    if (this.sortColumn !== columna) {
+      return 'bi-arrow-down-up';
+    }
+
+    return this.sortDirection === 'asc' ? 'bi-sort-down-alt' : 'bi-sort-down';
+  }
+
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.gastosFiltrados.length / this.tamanoPagina));
+  }
+
+  get gastosPaginados(): Gasto[] {
+    const inicio = (this.paginaActual - 1) * this.tamanoPagina;
+    const fin = inicio + this.tamanoPagina;
+    return this.gastosFiltrados.slice(inicio, fin);
+  }
+
+  get inicioRegistro(): number {
+    if (this.gastosFiltrados.length === 0) return 0;
+    return (this.paginaActual - 1) * this.tamanoPagina + 1;
+  }
+
+  get finRegistro(): number {
+    return Math.min(this.paginaActual * this.tamanoPagina, this.gastosFiltrados.length);
+  }
+
+  irAPagina(pagina: number): void {
+    if (pagina < 1 || pagina > this.totalPaginas) return;
+    this.paginaActual = pagina;
+    this.cdr.detectChanges();
+  }
+
+  paginaAnterior(): void {
+    this.irAPagina(this.paginaActual - 1);
+  }
+
+  paginaSiguiente(): void {
+    this.irAPagina(this.paginaActual + 1);
+  }
+
+  cambiarTamanoPagina(): void {
+    this.paginaActual = 1;
+    this.cdr.detectChanges();
+  }
+
+  get paginasVisibles(): number[] {
+    const total = this.totalPaginas;
+    const actual = this.paginaActual;
+
+    let desde = Math.max(1, actual - 2);
+    let hasta = Math.min(total, actual + 2);
+
+    if (actual <= 3) {
+      hasta = Math.min(total, 5);
+    }
+
+    if (actual >= total - 2) {
+      desde = Math.max(1, total - 4);
+    }
+
+    const paginas: number[] = [];
+    for (let i = desde; i <= hasta; i++) {
+      paginas.push(i);
+    }
+
+    return paginas;
   }
 
   private renderChartCategorias(): void {
@@ -557,5 +698,21 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
       .replaceAll('_', ' ')
       .toLowerCase()
       .replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+
+  formatMedio(medio: string | null | undefined): string {
+    if (!medio) return '-';
+    return medio
+      .replaceAll('_', ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+
+  private normalizar(valor: any): string {
+    return (valor ?? '')
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 }

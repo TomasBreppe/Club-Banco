@@ -106,7 +106,7 @@
       <div class="card-body">
         <h5 class="mb-3">Filtros</h5>
 
-        <div class="row g-3">
+        <div class="row g-3 filters-row">
           <div class="col-md-3">
             <label class="form-label">Disciplina</label>
             <select
@@ -130,6 +130,7 @@
               </option>
             </select>
           </div>
+
           <div class="col-md-3">
             <label class="form-label">Estado socio</label>
             <select class="form-select" [(ngModel)]="filtros.activo">
@@ -159,11 +160,17 @@
           </div>
 
           <div class="col-md-6 col-lg-3">
-            <button class="btn btn-dark w-100" (click)="cargarDashboard()">Filtrar</button>
+            <button class="btn btn-dark w-100" (click)="cargarDashboard()" type="button">
+              Filtrar
+            </button>
           </div>
 
           <div class="col-md-6 col-lg-3">
-            <button class="btn btn-outline-secondary w-100" (click)="limpiarFiltros()">
+            <button
+              class="btn btn-outline-secondary w-100"
+              (click)="limpiarFiltros()"
+              type="button"
+            >
               Limpiar filtros
             </button>
           </div>
@@ -173,15 +180,16 @@
 
     <div class="card shadow-sm">
       <div class="card-body">
-        <div
-          class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3"
-        >
-          <h5 class="mb-0">Listado de socios</h5>
-          <span class="text-muted small"> Registros: {{ socios.length }} </span>
+        <div class="table-toolbar socios-toolbar">
+          <h5 class="table-title">Listado de Socios</h5>
+
+          <div class="results-count-center">{{ socios.length }} Registros</div>
+
           <button
             class="btn btn-success"
             (click)="exportarSocios()"
             [disabled]="socios.length === 0"
+            type="button"
           >
             <i class="bi bi-file-earmark-excel me-2"></i>
             Descargar Excel
@@ -189,30 +197,99 @@
         </div>
 
         <div class="table-responsive">
-          <table class="table table-hover align-middle">
+          <table class="table table-hover align-middle mb-0">
             <thead>
               <tr>
-                <th>Socio</th>
-                <th>DNI</th>
-                <th>Disciplina</th>
-                <th>Estado socio</th>
-                <th>Estado pago</th>
-                <th>Vigencia hasta</th>
+                <th>
+                  <button
+                    type="button"
+                    class="th-sort-btn"
+                    [class.active]="sortColumn === 'apellido'"
+                    (click)="sortBy('apellido')"
+                  >
+                    Socio
+                    <i [class]="getSortIcon('apellido')"></i>
+                  </button>
+                </th>
+
+                <th>
+                  <button
+                    type="button"
+                    class="th-sort-btn"
+                    [class.active]="sortColumn === 'dni'"
+                    (click)="sortBy('dni')"
+                  >
+                    DNI
+                    <i [class]="getSortIcon('dni')"></i>
+                  </button>
+                </th>
+
+                <th>
+                  <button
+                    type="button"
+                    class="th-sort-btn"
+                    [class.active]="sortColumn === 'disciplinaNombre'"
+                    (click)="sortBy('disciplinaNombre')"
+                  >
+                    Disciplina / Categoría
+                    <i [class]="getSortIcon('disciplinaNombre')"></i>
+                  </button>
+                </th>
+
+                <th>
+                  <button
+                    type="button"
+                    class="th-sort-btn"
+                    [class.active]="sortColumn === 'activo'"
+                    (click)="sortBy('activo')"
+                  >
+                    Activo
+                    <i [class]="getSortIcon('activo')"></i>
+                  </button>
+                </th>
+
+                <th>
+                  <button
+                    type="button"
+                    class="th-sort-btn"
+                    [class.active]="sortColumn === 'estadoPago'"
+                    (click)="sortBy('estadoPago')"
+                  >
+                    Estado de pago
+                    <i [class]="getSortIcon('estadoPago')"></i>
+                  </button>
+                </th>
+
+                <th>
+                  <button
+                    type="button"
+                    class="th-sort-btn"
+                    [class.active]="sortColumn === 'vigenciaHasta'"
+                    (click)="sortBy('vigenciaHasta')"
+                  >
+                    Vigencia hasta
+                    <i [class]="getSortIcon('vigenciaHasta')"></i>
+                  </button>
+                </th>
               </tr>
             </thead>
+
             <tbody>
-              <tr *ngFor="let s of socios">
+              <tr *ngFor="let s of sociosPaginados">
                 <td>{{ s.apellido }}, {{ s.nombre }}</td>
                 <td>{{ s.dni }}</td>
-                <td>{{ s.disciplinaNombre }}</td>
+                <td>
+                  <div>{{ s.disciplinaNombre || '-' }}</div>
+                  <small class="text-muted">{{ s.categoriaArancel || '' }}</small>
+                </td>
                 <td>
                   <span [class]="getEstadoActivoClass(s.activo)">
-                    {{ s.activo ? 'Activo' : 'Inactivo' }}
+                    {{ s.activo ? 'Sí' : 'No' }}
                   </span>
                 </td>
                 <td>
                   <span [class]="getEstadoPagoClass(s.estadoPago)">
-                    {{ s.estadoPago === 'AL_DIA' ? 'Al día' : 'Debe' }}
+                    {{ s.estadoPago === 'AL_DIA' ? 'AL DÍA' : 'DEBE' }}
                   </span>
                 </td>
                 <td>{{ s.vigenciaHasta || '-' }}</td>
@@ -225,6 +302,59 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 p-3 border-top"
+          *ngIf="socios.length > 0"
+        >
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <small class="text-muted">
+              Mostrando {{ (currentPage - 1) * pageSize + 1 }} a
+              {{ Math.min(currentPage * pageSize, socios.length) }} de {{ socios.length }} socio(s)
+            </small>
+
+            <select
+              class="form-select form-select-sm footer-page-size"
+              [(ngModel)]="pageSize"
+              (ngModelChange)="currentPage = 1"
+            >
+              <option [ngValue]="5">5 por página</option>
+              <option [ngValue]="10">10 por página</option>
+              <option [ngValue]="20">20 por página</option>
+              <option [ngValue]="50">50 por página</option>
+            </select>
+          </div>
+
+          <nav aria-label="Paginación de socios" class="socios-pagination">
+            <button
+              type="button"
+              class="socios-page-btn nav-btn"
+              [disabled]="currentPage === 1"
+              (click)="paginaAnterior()"
+            >
+              Anterior
+            </button>
+
+            <button
+              type="button"
+              class="socios-page-btn number-btn"
+              *ngFor="let pagina of paginasVisibles"
+              [class.active]="pagina === currentPage"
+              (click)="irAPagina(pagina)"
+            >
+              {{ pagina }}
+            </button>
+
+            <button
+              type="button"
+              class="socios-page-btn nav-btn"
+              [disabled]="currentPage === totalPages"
+              (click)="paginaSiguiente()"
+            >
+              Siguiente
+            </button>
+          </nav>
         </div>
       </div>
     </div>

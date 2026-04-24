@@ -6,6 +6,7 @@ import {
   OnInit,
   ViewChild,
   inject,
+  HostListener,
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -20,6 +21,15 @@ import { DashboardSociosResumen, Socio } from '../../../models/dashboard.model';
 import { DisciplinaDto } from '../../../features/disciplinas.models';
 
 Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
+
+type SortColumn =
+  | 'apellido'
+  | 'nombre'
+  | 'dni'
+  | 'disciplinaNombre'
+  | 'activo'
+  | 'estadoPago'
+  | 'vigenciaHasta';
 
 @Component({
   selector: 'app-admin-dashboard-socios',
@@ -69,6 +79,17 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
     5: [],
     6: [],
   };
+
+  // ORDEN
+  sortColumn: SortColumn = 'apellido';
+  sortDirection: 'asc' | 'desc' = 'asc';
+
+  // PAGINACION
+  currentPage = 1;
+  pageSize = 10;
+
+  Math = Math;
+
   ngOnInit(): void {
     this.mesActual = this.datePipe.transform(new Date(), "MMMM 'de' yyyy", 'es-AR') ?? '';
     this.cargarDisciplinas();
@@ -142,7 +163,8 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
           }
 
           this.resumen = res.data.resumen;
-          this.socios = res.data.socios;
+          this.socios = res.data.socios ?? [];
+          this.currentPage = 1;
           this.chartsPendientes = true;
           this.cdr.detectChanges();
         },
@@ -161,6 +183,10 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
       estadoPago: '',
       q: '',
     };
+    this.categoriasFiltradas = [];
+    this.currentPage = 1;
+    this.sortColumn = 'apellido';
+    this.sortDirection = 'asc';
     this.cargarDashboard();
   }
 
@@ -192,13 +218,13 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
       ? this.filtros.q.trim().replace(/\s+/g, '_')
       : 'sin_busqueda';
 
-    const data = this.socios.map((s, index) => ({
+    const data = this.sociosOrdenados.map((s, index) => ({
       Nro: index + 1,
       Apellido: s.apellido,
       Nombre: s.nombre,
       DNI: s.dni,
       Disciplina: s.disciplinaNombre ?? '-',
-       'Categoría': s.categoriaArancel ?? '-',
+      Categoría: s.categoriaArancel ?? '-',
       'Estado socio': s.activo ? 'Activo' : 'Inactivo',
       'Estado pago': s.estadoPago === 'AL_DIA' ? 'Al día' : 'Debe',
       'Vigencia hasta': s.vigenciaHasta ?? '-',
@@ -287,6 +313,110 @@ export class AdminDashboardSociosComponent implements OnInit, AfterViewChecked {
     this.categoriasFiltradas = this.arancelesPorDisciplina[disciplinaId] ?? [];
     if (!this.categoriasFiltradas.includes(this.filtros.categoria)) {
       this.filtros.categoria = '';
+    }
+  }
+
+  // -------------------------
+  // ORDEN
+  // -------------------------
+  sortBy(column: SortColumn): void {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+
+    this.currentPage = 1;
+  }
+
+  getSortIcon(column: SortColumn): string {
+    if (this.sortColumn !== column) return 'bi bi-arrow-down-up';
+    return this.sortDirection === 'asc' ? 'bi bi-sort-down-alt' : 'bi bi-sort-up';
+  }
+
+  get sociosOrdenados(): Socio[] {
+    const lista = [...this.socios];
+
+    lista.sort((a, b) => {
+      const valueA = this.getSortValue(a, this.sortColumn);
+      const valueB = this.getSortValue(b, this.sortColumn);
+
+      if (valueA < valueB) return this.sortDirection === 'asc' ? -1 : 1;
+      if (valueA > valueB) return this.sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return lista;
+  }
+
+  private getSortValue(s: Socio, column: SortColumn): string | number {
+    switch (column) {
+      case 'apellido':
+        return (s.apellido ?? '').toLowerCase();
+      case 'nombre':
+        return (s.nombre ?? '').toLowerCase();
+      case 'dni':
+        return (s.dni ?? '').toString();
+      case 'disciplinaNombre':
+        return (s.disciplinaNombre ?? '').toLowerCase();
+      case 'activo':
+        return s.activo ? 1 : 0;
+      case 'estadoPago':
+        return (s.estadoPago ?? '').toLowerCase();
+      case 'vigenciaHasta':
+        return s.vigenciaHasta ?? '';
+      default:
+        return '';
+    }
+  }
+
+  // -------------------------
+  // PAGINACION
+  // -------------------------
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.sociosOrdenados.length / this.pageSize));
+  }
+
+  get sociosPaginados(): Socio[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.sociosOrdenados.slice(start, start + this.pageSize);
+  }
+
+  get paginas(): number[] {
+    const total = this.totalPages;
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  get paginasVisibles(): number[] {
+    const total = this.totalPages;
+    const maxVisible = 5;
+
+    let start = Math.max(1, this.currentPage - 2);
+    let end = start + maxVisible - 1;
+
+    if (end > total) {
+      end = total;
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }
+
+  irAPagina(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+  }
+
+  paginaAnterior(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+    }
+  }
+
+  paginaSiguiente(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
     }
   }
 }

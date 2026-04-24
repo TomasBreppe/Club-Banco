@@ -55,8 +55,25 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
 
   resumen: DashboardIngresosResumen | null = null;
   ingresos: IngresoDashboardItem[] = [];
+  ingresosFiltrados: IngresoDashboardItem[] = [];
   disciplinas: DisciplinaDto[] = [];
   mesActual = '';
+
+  paginaActual = 1;
+  tamanoPagina = 10;
+  opcionesTamano = [5, 10, 20, 50];
+
+  sortColumn:
+    | 'fecha'
+    | 'origen'
+    | 'socio'
+    | 'disciplina'
+    | 'categoria'
+    | 'concepto'
+    | 'periodo'
+    | 'medio'
+    | 'monto' = 'fecha';
+  sortDirection: 'asc' | 'desc' = 'desc';
 
   medios: string[] = ['EFECTIVO', 'TRANSFERENCIA', 'BANCO', 'MERCADO_PAGO', 'TARJETA', 'OTRO'];
 
@@ -149,7 +166,6 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
 
     this.dashboardIngresosService
       .obtenerDashboard({
-        // medio: this.filtros.medio || null,
         disciplinaId,
         categoriaManual: this.filtros.categoriaManual || null,
         fechaDesde: this.filtros.fechaDesde || null,
@@ -171,7 +187,10 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
           }
 
           this.resumen = res.data.resumen;
-          this.ingresos = res.data.ingresos;
+          this.ingresos = res.data.ingresos ?? [];
+          this.ingresosFiltrados = [...this.ingresos];
+          this.ordenarIngresos();
+          this.paginaActual = 1;
           this.chartsPendientes = true;
           this.cdr.detectChanges();
         },
@@ -191,6 +210,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
       fechaHasta: '',
       q: '',
     };
+    this.paginaActual = 1;
     this.cargarDashboard();
   }
 
@@ -256,6 +276,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
             descripcion: '',
           };
 
+          this.paginaActual = 1;
           this.cargarDashboard();
           this.cdr.detectChanges();
         },
@@ -300,6 +321,184 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
     const fileName = `ingresos_${disciplina}_${categoriaManual}_${fechaDesde}_${fechaHasta}_${busqueda}`;
 
     this.excelExportService.exportToExcel(data, fileName, 'Ingresos');
+  }
+
+  ordenarPor(
+    columna:
+      | 'fecha'
+      | 'origen'
+      | 'socio'
+      | 'disciplina'
+      | 'categoria'
+      | 'concepto'
+      | 'periodo'
+      | 'medio'
+      | 'monto',
+  ): void {
+    if (this.sortColumn === columna) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = columna;
+      this.sortDirection = columna === 'fecha' || columna === 'monto' ? 'desc' : 'asc';
+    }
+
+    this.ordenarIngresos();
+    this.paginaActual = 1;
+    this.cdr.detectChanges();
+  }
+
+  ordenarIngresos(): void {
+    this.ingresosFiltrados = [...this.ingresosFiltrados].sort((a, b) => {
+      let valorA: any;
+      let valorB: any;
+
+      switch (this.sortColumn) {
+        case 'fecha':
+          valorA = this.normalizar(a.fecha);
+          valorB = this.normalizar(b.fecha);
+          break;
+        case 'origen':
+          valorA = this.normalizar(this.formatOrigen(a.origen));
+          valorB = this.normalizar(this.formatOrigen(b.origen));
+          break;
+        case 'socio':
+          valorA = this.normalizar(a.socioNombreCompleto);
+          valorB = this.normalizar(b.socioNombreCompleto);
+          break;
+        case 'disciplina':
+          valorA = this.normalizar(a.disciplinaNombre);
+          valorB = this.normalizar(b.disciplinaNombre);
+          break;
+        case 'categoria':
+          valorA = this.normalizar(a.categoria);
+          valorB = this.normalizar(b.categoria);
+          break;
+        case 'concepto':
+          valorA = this.normalizar(a.concepto);
+          valorB = this.normalizar(b.concepto);
+          break;
+        case 'periodo':
+          valorA = this.normalizar(a.periodo);
+          valorB = this.normalizar(b.periodo);
+          break;
+        case 'medio':
+          valorA = this.normalizar(a.medio);
+          valorB = this.normalizar(b.medio);
+          break;
+        case 'monto':
+          valorA = Number(a.monto ?? 0);
+          valorB = Number(b.monto ?? 0);
+          break;
+        default:
+          valorA = this.normalizar(a.fecha);
+          valorB = this.normalizar(b.fecha);
+      }
+
+      if (valorA < valorB) {
+        return this.sortDirection === 'asc' ? -1 : 1;
+      }
+
+      if (valorA > valorB) {
+        return this.sortDirection === 'asc' ? 1 : -1;
+      }
+
+      return 0;
+    });
+  }
+
+  esColumnaActiva(
+    columna:
+      | 'fecha'
+      | 'origen'
+      | 'socio'
+      | 'disciplina'
+      | 'categoria'
+      | 'concepto'
+      | 'periodo'
+      | 'medio'
+      | 'monto',
+  ): boolean {
+    return this.sortColumn === columna;
+  }
+
+  iconoOrden(
+    columna:
+      | 'fecha'
+      | 'origen'
+      | 'socio'
+      | 'disciplina'
+      | 'categoria'
+      | 'concepto'
+      | 'periodo'
+      | 'medio'
+      | 'monto',
+  ): string {
+    if (this.sortColumn !== columna) {
+      return 'bi-arrow-down-up';
+    }
+
+    return this.sortDirection === 'asc' ? 'bi-sort-down-alt' : 'bi-sort-down';
+  }
+
+  get totalPaginas(): number {
+    return Math.max(1, Math.ceil(this.ingresosFiltrados.length / this.tamanoPagina));
+  }
+
+  get ingresosPaginados(): IngresoDashboardItem[] {
+    const inicio = (this.paginaActual - 1) * this.tamanoPagina;
+    const fin = inicio + this.tamanoPagina;
+    return this.ingresosFiltrados.slice(inicio, fin);
+  }
+
+  get inicioRegistro(): number {
+    if (this.ingresosFiltrados.length === 0) return 0;
+    return (this.paginaActual - 1) * this.tamanoPagina + 1;
+  }
+
+  get finRegistro(): number {
+    return Math.min(this.paginaActual * this.tamanoPagina, this.ingresosFiltrados.length);
+  }
+
+  irAPagina(pagina: number): void {
+    if (pagina < 1 || pagina > this.totalPaginas) return;
+    this.paginaActual = pagina;
+    this.cdr.detectChanges();
+  }
+
+  paginaAnterior(): void {
+    this.irAPagina(this.paginaActual - 1);
+  }
+
+  paginaSiguiente(): void {
+    this.irAPagina(this.paginaActual + 1);
+  }
+
+  cambiarTamanoPagina(): void {
+    this.paginaActual = 1;
+    this.cdr.detectChanges();
+  }
+
+  get paginasVisibles(): number[] {
+    const total = this.totalPaginas;
+    const actual = this.paginaActual;
+
+    let desde = Math.max(1, actual - 2);
+    let hasta = Math.min(total, actual + 2);
+
+    if (actual <= 3) {
+      hasta = Math.min(total, 5);
+    }
+
+    if (actual >= total - 2) {
+      desde = Math.max(1, total - 4);
+    }
+
+    const paginas: number[] = [];
+    for (let i = desde; i <= hasta; i++) {
+      paginas.push(i);
+    }
+
+    return paginas;
   }
 
   private renderChartMedios(): void {
@@ -468,6 +667,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
 
           this.ok = 'Ingreso manual actualizado correctamente';
           this.cerrarEditarIngresoManual();
+          this.paginaActual = 1;
           this.cargarDashboard();
           this.cdr.detectChanges();
         },
@@ -511,5 +711,13 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
       .replaceAll('_', ' ')
       .toLowerCase()
       .replace(/\b\w/g, (l) => l.toUpperCase());
+  }
+
+  private normalizar(valor: any): string {
+    return (valor ?? '')
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
   }
 }

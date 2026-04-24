@@ -215,7 +215,7 @@
 
                             <button
                               type="button"
-                              class="btn btn-sm btn-outline-primary"
+                              class="btn-pill btn-pill-primary"
                               (click)="toggleEditarCategoria(disc)"
                             >
                               Cambiar
@@ -243,7 +243,7 @@
                             <div class="d-flex gap-2 flex-wrap">
                               <button
                                 type="button"
-                                class="btn btn-sm btn-outline-secondary"
+                                class="btn-pill btn-pill-primary"
                                 (click)="toggleEditarCategoria(disc)"
                                 [disabled]="guardandoCategoriaPorDisciplina[disc.disciplinaId]"
                               >
@@ -252,7 +252,7 @@
 
                               <button
                                 type="button"
-                                class="btn btn-sm btn-primary"
+                                class="btn-pill btn-pill-primary"
                                 (click)="guardarCategoriaDisciplina(disc)"
                                 [disabled]="guardandoCategoriaPorDisciplina[disc.disciplinaId]"
                               >
@@ -838,7 +838,7 @@
                           <td>
                             <div class="d-flex gap-2 flex-wrap">
                               <button
-                                class="btn btn-sm btn-outline-success"
+                                class="btn-pill btn-pill-success"
                                 (click)="descargarComprobantePorPago(p.id)"
                                 [disabled]="p.anulado"
                               >
@@ -846,7 +846,7 @@
                               </button>
 
                               <button
-                                class="btn btn-sm btn-outline-danger"
+                                class="btn-pill btn-pill-danger"
                                 *ngIf="puedeAnularPago(p)"
                                 (click)="anularPago(p)"
                                 [disabled]="anulandoPagoId === p.id"
@@ -854,7 +854,7 @@
                                 {{ anulandoPagoId === p.id ? 'Anulando...' : 'Anular pago' }}
                               </button>
 
-                              <span *ngIf="p.anulado" class="badge bg-danger">ANULADO</span>
+                              <span *ngIf="p.anulado" class="btn-pill btn-pill-danger">ANULADO</span>
                             </div>
 
                             <div

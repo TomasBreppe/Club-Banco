@@ -1,44 +1,8 @@
 @import '../../../../shared/components/styles/dashboard-shared.css';
 
-.modal-backdrop-custom {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  z-index: 1040;
-}
-
-.custom-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1050;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-}
-
-.custom-modal-card {
-  width: min(720px, 100%);
-  background: #fff;
-  border: 1px solid var(--cb-border, #dbe3ef);
-  border-radius: 20px;
-  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.20);
-  overflow: hidden;
-}
-
-.custom-modal-header,
-.custom-modal-footer {
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid #eef2f7;
-}
-
-.custom-modal-footer {
-  border-bottom: 0;
-  border-top: 1px solid #eef2f7;
-  display: flex;
-  justify-content: flex-end;
-  gap: .75rem;
-}
-
-.custom-modal-body {
-  padding: 1.25rem;
+.results-count-center {
+  font-size: 0.9rem;
+  color: #64748b; /* gris azulado elegante */
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
