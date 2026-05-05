@@ -10,5 +10,6 @@ public enum CategoriaIngresoManual {
     PLAYAS,
     DEPOSITOS,
     KIOSCO_ALQUILERES,
-    CUOTAS_ATRASADAS 
+    CUOTAS_ATRASADAS,
+    INSCRIPCIONES
 }

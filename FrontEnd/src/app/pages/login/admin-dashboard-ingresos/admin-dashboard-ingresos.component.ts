@@ -102,6 +102,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
     'EVENTOS',
     'FUTBOL_ALQUILERES',
     'FUTBOL_TORNEOS',
+    'INSCRIPCIONES',
     'KIOSCO_ALQUILERES',
     'MANTOVANI',
     'MUTUAL',

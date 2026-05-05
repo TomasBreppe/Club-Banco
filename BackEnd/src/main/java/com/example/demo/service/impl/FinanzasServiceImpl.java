@@ -329,18 +329,22 @@ public class FinanzasServiceImpl implements FinanzasService {
         String categoria = null;
 
         if ("CUOTA_MENSUAL".equals(concepto)) {
-            arancel = socioDisciplina.getArancelDisciplina();
-
-            if (dto.getArancelDisciplinaId() != null) {
-                arancel = arancelDisciplinaRepository.findById(dto.getArancelDisciplinaId()).orElse(null);
-                if (arancel == null) {
-                    return new BaseResponse<>("Arancel no encontrado", 404, null);
-                }
-            }
-
-            if (arancel == null) {
+            if (socioDisciplina.getArancelDisciplina() == null) {
                 return new BaseResponse<>("La disciplina del socio no tiene arancel asociado", 400, null);
             }
+
+            YearMonth periodoYm = YearMonth.parse(periodo, YYYY_MM);
+            LocalDate fechaPeriodo = periodoYm.atEndOfMonth();
+
+            String categoriaSocio = socioDisciplina.getArancelDisciplina().getCategoria();
+            Long disciplinaSocioId = socioDisciplina.getDisciplina().getId();
+
+            arancel = arancelDisciplinaRepository
+                    .findTopByDisciplina_IdAndCategoriaIgnoreCaseAndVigenteDesdeLessThanEqualOrderByVigenteDesdeDesc(
+                            disciplinaSocioId,
+                            categoriaSocio,
+                            fechaPeriodo)
+                    .orElse(socioDisciplina.getArancelDisciplina());
 
             List<SocioDisciplinaEntity> relacionesActivas = socioDisciplinaRepository
                     .findBySocio_IdAndActivoTrue(dto.getSocioId());
