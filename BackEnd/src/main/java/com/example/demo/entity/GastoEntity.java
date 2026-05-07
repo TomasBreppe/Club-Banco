@@ -2,7 +2,7 @@ package com.example.demo.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
+import com.example.demo.util.FechaUtils;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -44,12 +44,15 @@ public class GastoEntity {
     private Boolean activo = true;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @PrePersist
     public void prePersist() {
-        if (fecha == null) fecha = LocalDate.now();
-        if (activo == null) activo = true;
-        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (fecha == null)
+            fecha = FechaUtils.hoyArgentina();
+        if (activo == null)
+            activo = true;
+        if (createdAt == null)
+            createdAt = FechaUtils.ahoraArgentina();
     }
 }

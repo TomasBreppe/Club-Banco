@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
-
+import com.example.demo.util.FechaUtils;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -87,6 +87,9 @@ public class PagoEntity {
 
     @PrePersist
     public void prePersist() {
-        if (anulado == null) anulado = false;
+        if (anulado == null)
+            anulado = false;
+        if (fechaPago == null)
+            fechaPago = FechaUtils.ahoraArgentina();
     }
 }

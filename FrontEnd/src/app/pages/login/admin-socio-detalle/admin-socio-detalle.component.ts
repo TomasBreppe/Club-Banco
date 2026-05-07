@@ -957,16 +957,12 @@ export class AdminSocioDetalleComponent implements OnInit {
   fmtFecha(iso: string): string {
     if (!iso) return '-';
 
-    const fecha = iso.endsWith('Z') ? iso : iso + 'Z';
-    const d = new Date(fecha);
+    const limpia = iso.replace('T', ' ').substring(0, 16);
 
-    return d.toLocaleString('es-AR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const [fechaParte, horaParte] = limpia.split(' ');
+    const [anio, mes, dia] = fechaParte.split('-');
+
+    return `${dia}/${mes}/${anio}, ${horaParte}`;
   }
 
   formatearPeriodo(periodo: string): string {

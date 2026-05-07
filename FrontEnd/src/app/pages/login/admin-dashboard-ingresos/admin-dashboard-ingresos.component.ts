@@ -270,7 +270,7 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
 
           this.ok = 'Ingreso manual registrado correctamente';
           this.formIngresoManual = {
-            fecha: new Date().toISOString().slice(0, 10),
+            fecha: this.obtenerFechaArgentina(),
             categoria: '',
             medioPago: '',
             monto: null,
@@ -590,6 +590,15 @@ export class AdminDashboardIngresosComponent implements OnInit, AfterViewChecked
     };
 
     this.cdr.detectChanges();
+  }
+
+  private obtenerFechaArgentina(): string {
+    const ahora = new Date();
+
+    const offset = ahora.getTimezoneOffset();
+    const local = new Date(ahora.getTime() - offset * 60000);
+
+    return local.toISOString().split('T')[0];
   }
 
   cerrarEditarIngresoManual(): void {

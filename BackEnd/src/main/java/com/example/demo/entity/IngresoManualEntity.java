@@ -6,6 +6,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import com.example.demo.util.FechaUtils;
 
 @Entity
 @Table(name = "ingreso_manual")
@@ -39,4 +40,12 @@ public class IngresoManualEntity {
 
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
+
+    @PrePersist
+    public void prePersist() {
+        if (fecha == null)
+            fecha = FechaUtils.hoyArgentina();
+        if (fechaCreacion == null)
+            fechaCreacion = FechaUtils.ahoraArgentina();
+    }
 }

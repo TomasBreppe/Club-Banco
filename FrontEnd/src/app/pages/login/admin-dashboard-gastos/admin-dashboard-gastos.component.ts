@@ -123,7 +123,7 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
   };
 
   form: GastoCreateRequest = {
-    fecha: new Date().toISOString().slice(0, 10),
+    fecha: this.obtenerFechaArgentina(),
     categoria: '',
     concepto: '',
     descripcion: '',
@@ -569,6 +569,15 @@ export class AdminDashboardGastosComponent implements OnInit, AfterViewChecked {
 
   esColumnaActiva(columna: 'fecha' | 'categoria' | 'concepto' | 'medioPago' | 'monto'): boolean {
     return this.sortColumn === columna;
+  }
+
+  private obtenerFechaArgentina(): string {
+    const ahora = new Date();
+
+    const offset = ahora.getTimezoneOffset();
+    const local = new Date(ahora.getTime() - offset * 60000);
+
+    return local.toISOString().split('T')[0];
   }
 
   iconoOrden(columna: 'fecha' | 'categoria' | 'concepto' | 'medioPago' | 'monto'): string {

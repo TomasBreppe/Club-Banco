@@ -11,6 +11,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { finalize } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
 import {
   Chart,
   BarController,
@@ -30,7 +31,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
 @Component({
   selector: 'app-admin-dashboard-balance',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule ],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './admin-dashboard-balance.component.html',
   styleUrls: ['./admin-dashboard-balance.component.css'],
   providers: [DatePipe],
@@ -181,17 +182,25 @@ export class AdminDashboardBalanceComponent implements OnInit, AfterViewInit {
     });
   }
 
-  descargarExcel() {
+  descargarExcel(): void {
+    const params: any = {};
+
+    if (this.fechaDesde) params.desde = this.fechaDesde;
+    if (this.fechaHasta) params.hasta = this.fechaHasta;
+
     this.http
-      .get('http://localhost:8080/api/admin/balance/excel', {
+      .get(`${environment.apiUrl}/api/admin/balance/excel`, {
+        params,
         responseType: 'blob',
       })
       .subscribe((blob) => {
         const a = document.createElement('a');
         const url = window.URL.createObjectURL(blob);
+
         a.href = url;
         a.download = 'balance.xlsx';
         a.click();
+
         window.URL.revokeObjectURL(url);
       });
   }
