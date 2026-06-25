@@ -69,6 +69,21 @@ public class SocioServiceImpl implements SocioService {
                         return BaseResponse.bad("El arancel seleccionado está inactivo");
                 }
 
+                Integer mesInicioPago = dto.getMesInicioPago();
+
+                if (mesInicioPago == null || mesInicioPago < 1 || mesInicioPago > 12) {
+                        return BaseResponse.bad("Debés seleccionar un mes de inicio de pago válido");
+                }
+
+                LocalDate hoy = LocalDate.now();
+                LocalDate inicioPago = LocalDate.of(hoy.getYear(), mesInicioPago, 1);
+
+                if (inicioPago.isBefore(hoy.withDayOfMonth(1))) {
+                        inicioPago = inicioPago.plusYears(1);
+                }
+
+                LocalDate vigenciaHastaInicial = inicioPago.minusDays(1);
+
                 SocioEntity socio = SocioEntity.builder()
                                 .dni(dto.getDni().trim())
                                 .nombre(dto.getNombre().trim())
@@ -98,7 +113,7 @@ public class SocioServiceImpl implements SocioService {
                                 .disciplina(disc)
                                 .arancelDisciplina(arancel)
                                 .activo(true)
-                                .vigenciaHasta(null)
+                                .vigenciaHasta(vigenciaHastaInicial)
                                 .inscripcionPagada(
                                                 dto.getInscripcionPagada() != null ? dto.getInscripcionPagada() : false)
                                 .build();
@@ -319,6 +334,87 @@ public class SocioServiceImpl implements SocioService {
                 return BaseResponse.ok(
                                 "Categoría actualizada correctamente",
                                 SocioMapper.toDto(socio, savedSd));
+        }
+
+        @Override
+        @Transactional
+        public BaseResponse<SocioDto> cambiarDisciplina(Long socioId, SocioCambiarDisciplinaDto dto) {
+
+                SocioEntity socio = socioRepository.findById(socioId).orElse(null);
+                if (socio == null) {
+                        return BaseResponse.bad("Socio no encontrado");
+                }
+
+                if (Boolean.FALSE.equals(socio.getActivo())) {
+                        return BaseResponse.bad("El socio está inactivo");
+                }
+
+                if (dto.getDisciplinaId() == null) {
+                        return BaseResponse.bad("Debés seleccionar una disciplina");
+                }
+
+                if (dto.getArancelDisciplinaId() == null || dto.getArancelDisciplinaId() <= 0) {
+                        return BaseResponse.bad("Debés seleccionar una categoría/arancel");
+                }
+
+                Integer mesInicioPago = dto.getMesInicioPago();
+                if (mesInicioPago == null || mesInicioPago < 1 || mesInicioPago > 12) {
+                        return BaseResponse.bad("Debés seleccionar un mes de inicio de pago válido");
+                }
+
+                DisciplinaEntity nuevaDisciplina = disciplinaRepository.findById(dto.getDisciplinaId())
+                                .orElse(null);
+
+                if (nuevaDisciplina == null) {
+                        return BaseResponse.bad("Disciplina no encontrada");
+                }
+
+                ArancelDisciplinaEntity nuevoArancel = arancelDisciplinaRepository
+                                .findById(dto.getArancelDisciplinaId())
+                                .orElse(null);
+
+                if (nuevoArancel == null) {
+                        return BaseResponse.bad("Arancel no encontrado");
+                }
+
+                if (!nuevoArancel.getDisciplina().getId().equals(nuevaDisciplina.getId())) {
+                        return BaseResponse.bad("El arancel no corresponde a la disciplina seleccionada");
+                }
+
+                if (Boolean.FALSE.equals(nuevoArancel.getActiva())) {
+                        return BaseResponse.bad("El arancel seleccionado está inactivo");
+                }
+
+                List<SocioDisciplinaEntity> activas = socioDisciplinaRepository.findBySocio_IdAndActivoTrue(socioId);
+
+                for (SocioDisciplinaEntity sd : activas) {
+                        sd.setActivo(false);
+                }
+
+                socioDisciplinaRepository.saveAll(activas);
+
+                LocalDate hoy = LocalDate.now();
+                LocalDate inicioPago = LocalDate.of(hoy.getYear(), mesInicioPago, 1);
+
+                if (inicioPago.isBefore(hoy.withDayOfMonth(1))) {
+                        inicioPago = inicioPago.plusYears(1);
+                }
+
+                LocalDate vigenciaHastaInicial = inicioPago.minusDays(1);
+
+                SocioDisciplinaEntity nuevaRelacion = SocioDisciplinaEntity.builder()
+                                .socio(socio)
+                                .disciplina(nuevaDisciplina)
+                                .arancelDisciplina(nuevoArancel)
+                                .activo(true)
+                                .vigenciaHasta(vigenciaHastaInicial)
+                                .inscripcionPagada(
+                                                dto.getInscripcionPagada() != null ? dto.getInscripcionPagada() : false)
+                                .build();
+
+                socioDisciplinaRepository.save(nuevaRelacion);
+
+                return BaseResponse.ok("Disciplina cambiada correctamente", SocioMapper.toDto(socio, nuevaRelacion));
         }
 
         private BigDecimal normalizarPorcentaje(BigDecimal value) {

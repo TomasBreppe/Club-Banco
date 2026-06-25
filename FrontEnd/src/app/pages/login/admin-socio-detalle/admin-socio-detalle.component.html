@@ -5,13 +5,21 @@
       <span class="h4 m-0">Detalle socio</span>
     </div>
 
-    <button class="btn-pill btn-pill-primary" (click)="toggleAgregarDisciplina()">
-      + Agregar disciplina
-    </button>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn-pill btn-pill-primary" (click)="toggleAgregarDisciplina()">
+        + Agregar disciplina
+      </button>
+
+      <button class="btn-pill btn-pill-primary" (click)="toggleCambiarDisciplina()">
+        Cambiar disciplina
+      </button>
+    </div>
   </div>
 
   <div *ngIf="mostrarAgregarDisciplina" class="card shadow-sm mb-3">
-    <div class="card-header fw-semibold">Agregar nueva disciplina</div>
+    <div class="card-header fw-semibold">
+      {{ modoCambioDisciplina ? 'Cambiar disciplina actual' : 'Agregar nueva disciplina' }}
+    </div>
 
     <div class="card-body">
       <div *ngIf="agregarDisciplinaError" class="alert alert-danger">
@@ -55,6 +63,20 @@
         </div>
 
         <div class="col-12 col-md-4">
+          <label class="form-label">Mes inicio de pago</label>
+          <select
+            class="form-select"
+            [(ngModel)]="agregarDisciplinaForm.mesInicioPago"
+            name="mesInicioPagoCambioDisciplina"
+            [disabled]="agregarDisciplinaLoading"
+          >
+            <option *ngFor="let mes of mesesInicioPago" [ngValue]="mes.valor">
+              {{ mes.nombre }}
+            </option>
+          </select>
+        </div>
+
+        <div class="col-12 col-md-4">
           <label class="form-label d-block">Inscripción</label>
 
           <div class="form-check mt-2">
@@ -89,7 +111,7 @@
           (click)="guardarNuevaDisciplina()"
           [disabled]="agregarDisciplinaLoading"
         >
-          Guardar disciplina
+          {{ modoCambioDisciplina ? 'Cambiar disciplina' : 'Guardar disciplina' }}
         </button>
       </div>
     </div>
@@ -854,7 +876,9 @@
                                 {{ anulandoPagoId === p.id ? 'Anulando...' : 'Anular pago' }}
                               </button>
 
-                              <span *ngIf="p.anulado" class="btn-pill btn-pill-danger">ANULADO</span>
+                              <span *ngIf="p.anulado" class="btn-pill btn-pill-danger"
+                                >ANULADO</span
+                              >
                             </div>
 
                             <div

@@ -183,6 +183,29 @@
         </div>
       </div>
 
+      <div class="col-md-3">
+        <label class="form-label">Mes inicio de pago *</label>
+        <select
+          class="form-select"
+          name="mesInicioPago"
+          [(ngModel)]="form.mesInicioPago"
+          required
+          #mesInicioPago="ngModel"
+          [class.is-invalid]="(f.submitted || mesInicioPago.touched) && mesInicioPago.invalid"
+        >
+          <option *ngFor="let mes of mesesInicioPago" [ngValue]="mes.valor">
+            {{ mes.nombre }}
+          </option>
+        </select>
+
+        <div
+          class="invalid-feedback"
+          *ngIf="(f.submitted || mesInicioPago.touched) && mesInicioPago.errors?.['required']"
+        >
+          Mes de inicio de pago es obligatorio
+        </div>
+      </div>
+
       <div class="form-check mt-3">
         <input
           class="form-check-input"

@@ -139,10 +139,19 @@ public class FinanzasServiceImpl implements FinanzasService {
             inscripcionPaga = true;
         }
 
-        YearMonth start = Collections.max(List.of(
-                PERIODO_INICIO_SISTEMA,
-                YearMonth.from(primerArancel.getVigenteDesde()),
-                YearMonth.from(socioDisciplina.getFechaAlta().toLocalDate())));
+        YearMonth start;
+
+        if (socioDisciplina.getVigenciaHasta() != null) {
+
+            start = YearMonth.from(socioDisciplina.getVigenciaHasta().plusDays(1));
+
+        } else {
+
+            start = Collections.max(List.of(
+                    PERIODO_INICIO_SISTEMA,
+                    YearMonth.from(primerArancel.getVigenteDesde()),
+                    YearMonth.from(socioDisciplina.getFechaAlta().toLocalDate())));
+        }
 
         YearMonth end = YearMonth.from(LocalDate.now());
 

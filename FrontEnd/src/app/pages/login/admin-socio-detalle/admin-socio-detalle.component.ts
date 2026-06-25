@@ -41,6 +41,7 @@ interface AgregarDisciplinaForm {
   disciplinaId: number | null;
   arancelDisciplinaId: number | null;
   inscripcionPagada: boolean;
+  mesInicioPago: number;
 }
 
 interface BecaForm {
@@ -92,12 +93,30 @@ export class AdminSocioDetalleComponent implements OnInit {
     disciplinaId: null,
     arancelDisciplinaId: null,
     inscripcionPagada: false,
+    mesInicioPago: new Date().getMonth() + 1,
   };
 
   editandoBeca = false;
   guardandoBeca = false;
   becaError: string | null = null;
   becaOk: string | null = null;
+
+  modoCambioDisciplina = false;
+
+  mesesInicioPago = [
+    { valor: 1, nombre: 'Enero' },
+    { valor: 2, nombre: 'Febrero' },
+    { valor: 3, nombre: 'Marzo' },
+    { valor: 4, nombre: 'Abril' },
+    { valor: 5, nombre: 'Mayo' },
+    { valor: 6, nombre: 'Junio' },
+    { valor: 7, nombre: 'Julio' },
+    { valor: 8, nombre: 'Agosto' },
+    { valor: 9, nombre: 'Septiembre' },
+    { valor: 10, nombre: 'Octubre' },
+    { valor: 11, nombre: 'Noviembre' },
+    { valor: 12, nombre: 'Diciembre' },
+  ];
 
   becaForm: BecaForm = {
     tieneBeca: false,
@@ -333,6 +352,19 @@ export class AdminSocioDetalleComponent implements OnInit {
   // NUEVO: abrir/cerrar agregar disciplina
   toggleAgregarDisciplina(): void {
     this.mostrarAgregarDisciplina = !this.mostrarAgregarDisciplina;
+    this.modoCambioDisciplina = false;
+
+    if (this.mostrarAgregarDisciplina) {
+      this.agregarDisciplinaError = null;
+      this.agregarDisciplinaOk = null;
+      this.resetAgregarDisciplinaForm();
+      this.cargarDisciplinasDisponibles();
+    }
+  }
+
+  toggleCambiarDisciplina(): void {
+    this.mostrarAgregarDisciplina = !this.mostrarAgregarDisciplina;
+    this.modoCambioDisciplina = true;
 
     if (this.mostrarAgregarDisciplina) {
       this.agregarDisciplinaError = null;
@@ -420,6 +452,7 @@ export class AdminSocioDetalleComponent implements OnInit {
       disciplinaId: null,
       arancelDisciplinaId: null,
       inscripcionPagada: false,
+      mesInicioPago: new Date().getMonth() + 1,
     };
     this.arancelesNuevaDisciplina = [];
   }
@@ -556,12 +589,20 @@ export class AdminSocioDetalleComponent implements OnInit {
     this.agregarDisciplinaOk = null;
     this.cdr.detectChanges();
 
-    this.api
-      .agregarDisciplina(this.data.socioId, {
-        disciplinaId: this.agregarDisciplinaForm.disciplinaId,
-        arancelDisciplinaId: this.agregarDisciplinaForm.arancelDisciplinaId,
-        inscripcionPagada: this.agregarDisciplinaForm.inscripcionPagada,
-      })
+    const request$ = this.modoCambioDisciplina
+      ? this.api.cambiarDisciplina(this.data.socioId, {
+          disciplinaId: this.agregarDisciplinaForm.disciplinaId,
+          arancelDisciplinaId: this.agregarDisciplinaForm.arancelDisciplinaId,
+          inscripcionPagada: this.agregarDisciplinaForm.inscripcionPagada,
+          mesInicioPago: this.agregarDisciplinaForm.mesInicioPago,
+        })
+      : this.api.agregarDisciplina(this.data.socioId, {
+          disciplinaId: this.agregarDisciplinaForm.disciplinaId,
+          arancelDisciplinaId: this.agregarDisciplinaForm.arancelDisciplinaId,
+          inscripcionPagada: this.agregarDisciplinaForm.inscripcionPagada,
+        });
+
+    request$
       .pipe(
         finalize(() => {
           this.agregarDisciplinaLoading = false;
@@ -578,7 +619,9 @@ export class AdminSocioDetalleComponent implements OnInit {
 
           const socioId = this.data!.socioId;
 
-          this.agregarDisciplinaOk = 'Disciplina agregada correctamente';
+          this.agregarDisciplinaOk = this.modoCambioDisciplina
+            ? 'Disciplina cambiada correctamente'
+            : 'Disciplina agregada correctamente';
           this.resetAgregarDisciplinaForm();
           this.mostrarAgregarDisciplina = false;
           this.cargar(socioId);

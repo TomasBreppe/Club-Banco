@@ -47,12 +47,28 @@ export class AdminSociosComponent implements OnInit {
     disciplinaId: 0,
     arancelDisciplinaId: 0,
     inscripcionPagada: false,
+    mesInicioPago: new Date().getMonth() + 1,
     tieneBeca: false,
     porcentajeBecaSocial: 0,
     porcentajeBecaDeportiva: 0,
     porcentajeBecaPreparacionFisica: 0,
     observacionBeca: '',
   };
+
+  mesesInicioPago = [
+    { valor: 1, nombre: 'Enero' },
+    { valor: 2, nombre: 'Febrero' },
+    { valor: 3, nombre: 'Marzo' },
+    { valor: 4, nombre: 'Abril' },
+    { valor: 5, nombre: 'Mayo' },
+    { valor: 6, nombre: 'Junio' },
+    { valor: 7, nombre: 'Julio' },
+    { valor: 8, nombre: 'Agosto' },
+    { valor: 9, nombre: 'Septiembre' },
+    { valor: 10, nombre: 'Octubre' },
+    { valor: 11, nombre: 'Noviembre' },
+    { valor: 12, nombre: 'Diciembre' },
+  ];
 
   constructor(
     private sociosApi: SociosService,
@@ -251,6 +267,7 @@ export class AdminSociosComponent implements OnInit {
             disciplinaId,
             arancelDisciplinaId: 0,
             inscripcionPagada: false,
+            mesInicioPago: new Date().getMonth() + 1,
             tieneBeca: false,
             porcentajeBecaSocial: 0,
             porcentajeBecaDeportiva: 0,

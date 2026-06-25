@@ -42,9 +42,14 @@ public class SocioCreateDto {
 
     private Boolean inscripcionPagada;
 
+    @NotNull
+    @Min(1)
+    @Max(12)
+    private Integer mesInicioPago;
+
     private Boolean tieneBeca;
     private BigDecimal porcentajeBecaSocial;
     private BigDecimal porcentajeBecaDeportiva;
     private BigDecimal porcentajeBecaPreparacionFisica;
-    private String observacionBeca; 
+    private String observacionBeca;
 }

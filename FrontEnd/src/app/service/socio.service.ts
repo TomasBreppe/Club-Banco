@@ -37,6 +37,21 @@ export class SociosService {
     );
   }
 
+  cambiarDisciplina(
+    socioId: number,
+    body: {
+      disciplinaId: number;
+      arancelDisciplinaId: number;
+      inscripcionPagada?: boolean;
+      mesInicioPago: number;
+    },
+  ) {
+    return this.http.put<BaseResponse<any>>(
+      `${this.base}/api/admin/socios/${socioId}/disciplina`,
+      body,
+    );
+  }
+
   actualizarBeca(socioId: number, body: any) {
     return this.http.put<any>(`${this.base}/api/admin/socios/${socioId}/beca`, body);
   }

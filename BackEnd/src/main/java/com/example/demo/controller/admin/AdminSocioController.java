@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import com.example.demo.dto.socio.SocioCambiarCategoriaDto;
+import com.example.demo.dto.socio.SocioCambiarDisciplinaDto;
 
 import java.util.List;
 
@@ -68,5 +69,12 @@ public class AdminSocioController {
             @PathVariable Long socioDisciplinaId,
             @RequestBody SocioCambiarCategoriaDto dto) {
         return socioService.cambiarCategoriaDisciplina(socioDisciplinaId, dto);
+    }
+
+    @PutMapping("/{id}/disciplina")
+    public BaseResponse<SocioDto> cambiarDisciplina(
+            @PathVariable Long id,
+            @RequestBody SocioCambiarDisciplinaDto dto) {
+        return socioService.cambiarDisciplina(id, dto);
     }
 }

@@ -29,6 +29,7 @@ export interface SocioCreateRequest {
   disciplinaId: number;
   arancelDisciplinaId: number;
   inscripcionPagada?: boolean;
+  mesInicioPago: number;
   tieneBeca: boolean;
   porcentajeBecaSocial: number;
   porcentajeBecaDeportiva: number;
